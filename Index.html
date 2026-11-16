@@ -1,0 +1,3256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>StickSync: Misteri Menara Gema</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #060913;
+      color: #f8fafc;
+      touch-action: manipulation;
+    }
+    /* Fullscreen fallback untuk iOS Safari & iFrame */
+    .pseudo-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100dvh !important;
+      z-index: 9999 !important;
+      background: #060913 !important;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      touch-action: none;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.5);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex items-center justify-center">
+
+  <!-- Root Container -->
+  <div id="appRoot" class="relative w-full h-full flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950">
+
+    <!-- ==================== 1. LAYAR MENU UTAMA ==================== -->
+    <div id="menuScreen" class="absolute inset-0 z-20 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+      <div class="w-full max-w-4xl bg-slate-900/90 border border-slate-700/80 backdrop-blur-xl rounded-3xl shadow-2xl p-4 sm:p-7 my-auto">
+        <!-- Header Judul -->
+        <div class="text-center mb-5">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wider uppercase mb-2">
+            <span>🧩 Petualangan Teka-Teki Kooperatif</span>
+          </div>
+          <h1 class="text-2xl sm:text-4xl font-black bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            StickSync: Misteri Menara Gema
+          </h1>
+          <p class="text-slate-400 text-xs sm:text-sm mt-1">
+            Pecahkan 10 bab teka-teki logika, sandi rune, tuas terbalik &amp; estafet waktu • 2–6 Pemain Online atau Mode Solo
+          </p>
+        </div>
+
+        <!-- Grid 2 Kolom: Kustomisasi Stickman & Aksi Bermain -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5 items-stretch">
+          
+          <!-- Kolom Kiri: Live Preview & Kustomisasi -->
+          <div class="md:col-span-6 bg-slate-950/75 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Kustomisasi Stickman</span>
+                <span id="saveBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
+                  Progres: Bab 1
+                </span>
+              </div>
+
+              <!-- Live Preview Canvas + Animasi State + Nama -->
+              <div class="flex items-center gap-3.5 bg-slate-900/90 border border-slate-800 rounded-xl p-3 mb-3">
+                <div class="flex flex-col items-center gap-1.5 shrink-0">
+                  <canvas id="previewCanvas" width="96" height="104" class="w-20 h-22 rounded-lg bg-slate-950 border border-slate-800"></canvas>
+                  <div class="flex gap-1">
+                    <button type="button" data-anim="idle" class="prev-anim-btn px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/30 text-sky-200 border border-sky-400/50">Diam</button>
+                    <button type="button" data-anim="run" class="prev-anim-btn px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">Lari</button>
+                    <button type="button" data-anim="jump" class="prev-anim-btn px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">Lompat</button>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Penjelajah</label>
+                  <input id="playerNameInput" type="text" maxlength="14" value="Penjelajah" placeholder="Nama kamu..."
+                    class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-sky-400 transition" />
+                  <p class="text-[11px] text-slate-400 mt-1.5 leading-snug">
+                    Ikuti garis kabel energi bercahaya di setiap ruangan untuk menganalisis hubungan sakelar dan pintu!
+                  </p>
+                </div>
+              </div>
+
+              <!-- 8 Warna Neon -->
+              <div class="mb-2.5">
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Warna Aura Neon (8 Pilihan)</label>
+                <div id="colorPalette" class="grid grid-cols-8 gap-2"></div>
+              </div>
+
+              <!-- 7 Aksesoris Kepala -->
+              <div class="mb-2.5">
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Aksesoris Kepala (7 Pilihan)</label>
+                <div id="hatSelector" class="grid grid-cols-4 gap-1.5"></div>
+              </div>
+
+              <!-- 5 Ekspresi Wajah -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Ekspresi Wajah (5 Pilihan)</label>
+                <div id="faceSelector" class="grid grid-cols-5 gap-1.5"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kolom Kanan: Tombol Mode Bermain & Save -->
+          <div class="md:col-span-6 flex flex-col justify-between gap-3">
+            <div class="bg-slate-950/75 border border-slate-800 rounded-2xl p-4 flex-1 flex flex-col justify-center gap-2.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Mulai Petualangan</span>
+
+              <button id="btnStartSolo" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-sm sm:text-base shadow-lg shadow-indigo-500/25 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+                <span>🎮 Main Solo / Lokal (2 Karakter)</span>
+              </button>
+
+              <button id="btnHostRoom" class="w-full py-3.5 px-4 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base shadow-lg shadow-emerald-600/20 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+                <span>🌐 Buat Room Online (Host)</span>
+              </button>
+
+              <button id="btnOpenJoin" class="w-full py-3.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-sm sm:text-base transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+                <span>🔗 Gabung Room Online</span>
+              </button>
+
+              <!-- Navigasi Sekunder: Pilih Bab (1-10) & Save / Kode Progres -->
+              <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800">
+                <button id="btnContinueSave" class="py-2.5 px-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 font-semibold text-xs transition">
+                  ▶️ Lanjutkan
+                </button>
+                <button id="btnSelectChapter" class="py-2.5 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs transition">
+                  🗺️ Pilih Bab (1–10)
+                </button>
+                <button id="btnSaveCodeModal" class="py-2.5 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs transition">
+                  💾 Save / Kode
+                </button>
+              </div>
+            </div>
+
+            <!-- Ringkasan Mekanik Teka-Teki -->
+            <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3.5 text-xs text-slate-300 space-y-1">
+              <div class="font-bold text-sky-400 mb-1">🧠 Mekanik Teka-Teki Kooperatif:</div>
+              <div>• <b>Sandi Batu &amp; Pola:</b> Baca prasasti rune/angka/lampu di dinding menara sebelum menarik tuas!</div>
+              <div>• <b>Tuas Terbalik:</b> Membuka satu gerbang sambil menutup gerbang lain—atur urutan lewat!</div>
+              <div>• <b>Panjat Bahu &amp; Lift:</b> Lompat ke atas kepala teman atau angkat peti batu ke atas lift.</div>
+              <div>• <b>Kontrol:</b> <kbd class="px-1.5 py-0.5 bg-slate-800 rounded">A/D</kbd> Gerak, <kbd class="px-1.5 py-0.5 bg-slate-800 rounded">W/Spasi</kbd> Lompat, <kbd class="px-1.5 py-0.5 bg-slate-800 rounded">E</kbd> Tuas, <kbd class="px-1.5 py-0.5 bg-slate-800 rounded">Tab</kbd> Ganti, <kbd class="px-1.5 py-0.5 bg-slate-800 rounded">1-5</kbd> Emote.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 2. LAYAR LOBBY MULTIPLAYER ==================== -->
+    <div id="lobbyScreen" class="hidden absolute inset-0 z-20 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+      <div class="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-extrabold text-white">Lobby Menara Gema</h2>
+          <div class="flex items-center gap-2">
+            <span id="lobbyPingBadge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 text-emerald-300 border border-slate-700">12 ms</span>
+            <span id="lobbyRoleBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">HOST</span>
+          </div>
+        </div>
+
+        <!-- Kotak Kode Room -->
+        <div class="bg-slate-950 border border-indigo-500/40 rounded-2xl p-4 text-center mb-4">
+          <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Kode Room (Bagikan ke 1–5 Teman)</div>
+          <div class="flex items-center justify-center gap-3">
+            <span id="lobbyRoomCode" class="text-3xl sm:text-4xl font-black tracking-[0.25em] text-sky-400">-----</span>
+            <button id="btnCopyRoomCode" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition">
+              📋 Salin Kode
+            </button>
+          </div>
+          <div id="lobbyNetworkStatus" class="text-xs text-slate-400 mt-2">Menyiapkan koneksi WebRTC P2P...</div>
+        </div>
+
+        <!-- Daftar Pemain Terhubung dengan Avatar Stickman -->
+        <div class="mb-4">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-400 mb-2">
+            <span>Penjelajah di Ruangan (2–6 Pemain)</span>
+            <span id="lobbyPlayerCount">1 / 6</span>
+          </div>
+          <div id="lobbyPlayerList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Pilih Bab Awal (Host) -->
+        <div id="hostChapterSelectWrap" class="mb-4">
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Pilih Bab Awal:</label>
+          <select id="lobbyChapterSelect" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-400"></select>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btnLeaveLobby" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm transition">
+            Keluar
+          </button>
+          <button id="btnLaunchMultiplayer" class="flex-[2] py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-sm shadow-lg transition">
+            🚀 Mulai Petualangan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3. MODAL GABUNG ROOM ==================== -->
+    <div id="joinModal" class="hidden absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl">
+        <h2 class="text-xl font-extrabold text-white mb-1">Gabung Room Online</h2>
+        <p class="text-xs text-slate-400 mb-4">Masukkan 5 karakter Kode Room dari teman Anda.</p>
+
+        <input id="joinCodeInput" type="text" maxlength="5" placeholder="CONTOH: GEMA7"
+          class="w-full px-4 py-3.5 rounded-2xl bg-slate-950 border-2 border-slate-700 focus:border-sky-400 text-center text-2xl font-black tracking-[0.25em] uppercase text-sky-300 focus:outline-none mb-3" />
+        <div id="joinStatusText" class="text-xs text-center text-amber-300 min-h-[18px] mb-3"></div>
+
+        <div class="flex gap-2">
+          <button id="btnCancelJoin" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm">
+            Batal
+          </button>
+          <button id="btnConfirmJoin" class="flex-[2] py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm shadow-lg">
+            Hubungkan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. MODAL PILIH BAB (1–10) ==================== -->
+    <div id="chapterModal" class="hidden absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl max-h-[88vh] flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-xl font-extrabold text-white">Peta 10 Bab Menara Gema</h2>
+            <p class="text-xs text-slate-400">Setiap bab berisi 3–4 ruang teka-teki kooperatif yang menantang &amp; 100% bisa diselesaikan 2 pemain</p>
+          </div>
+          <button id="btnCloseChapterModal" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">✕</button>
+        </div>
+        <div id="chapterGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. MODAL SAVE / KODE PROGRES ==================== -->
+    <div id="saveModal" class="hidden absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+      <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl">
+        <h2 class="text-xl font-extrabold text-white mb-1">Save &amp; Kode Progres Portabel</h2>
+        <p class="text-xs text-slate-400 mb-4">Progres otomatis tersimpan di browser ini. Salin kode di bawah untuk memindahkan progres ke perangkat lain.</p>
+
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Kode Save Anda:</label>
+        <div class="flex gap-2 mb-4">
+          <input id="exportSaveInput" type="text" readonly class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-emerald-300" />
+          <button id="btnCopySaveCode" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white">Salin</button>
+        </div>
+
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Muat Kode Save Lain:</label>
+        <input id="importSaveInput" type="text" placeholder="Tempel kode STICKSYNC-... di sini" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white mb-3 focus:outline-none focus:border-sky-400" />
+
+        <div class="flex gap-2">
+          <button id="btnCloseSaveModal" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm">Tutup</button>
+          <button id="btnApplyImportSave" class="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm">Muat Kode</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 6. LAYAR PERMAINAN UTAMA ==================== -->
+    <div id="gameScreen" class="hidden relative w-full h-full flex flex-col items-center justify-center bg-slate-950">
+      
+      <!-- HUD Atas Minimalis -->
+      <div class="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between gap-2 pointer-events-none">
+        <!-- Kiri Atas: Badge Bab & Objektif + Tombol Petunjuk -->
+        <div class="flex items-center gap-1.5 sm:gap-2 pointer-events-auto flex-wrap">
+          <div class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 backdrop-blur-md shadow-lg flex items-center gap-2">
+            <span id="hudChapterBadge" class="text-xs sm:text-sm font-extrabold text-sky-400">Bab 1/10</span>
+            <span class="text-slate-600">|</span>
+            <span id="hudChapterTitle" class="text-xs sm:text-sm font-semibold text-slate-200 truncate max-w-[130px] sm:max-w-[230px]">Gerbang Gema</span>
+          </div>
+
+          <button id="btnHudHint" title="Lihat Petunjuk Teka-Teki Bab Ini" class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 backdrop-blur-md text-xs font-bold text-amber-200 shadow-lg transition">
+            💡 Petunjuk
+          </button>
+
+          <div id="hudActiveCharBadge" class="px-2.5 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-400/35 backdrop-blur-md text-xs font-bold text-indigo-200 shadow-lg">
+            Kendali: P1
+          </div>
+        </div>
+
+        <!-- Tengah Atas: Room Code & Latency (Saat Online) -->
+        <div id="hudRoomBadge" class="hidden pointer-events-auto px-3 py-1.5 rounded-xl bg-slate-900/90 border border-indigo-500/40 backdrop-blur-md text-xs font-bold text-indigo-200 shadow-lg flex items-center gap-2">
+          <span>Room: <b id="hudRoomCodeText" class="text-sky-300 tracking-wider">-----</b></span>
+          <span id="hudPingText" class="text-[11px] text-emerald-400">● 14ms</span>
+        </div>
+
+        <!-- Kanan Atas: Tombol Ikon Ringkas -->
+        <div class="flex items-center gap-1.5 pointer-events-auto">
+          <button id="btnHudSwitchChar" title="Ganti Karakter [Tab]" class="px-2.5 h-9 rounded-xl bg-indigo-600/90 hover:bg-indigo-500 border border-indigo-400/40 text-white text-xs font-bold shadow-lg flex items-center gap-1">
+            <span>🔄 Ganti</span>
+          </button>
+          <button id="btnHudToggleTouch" title="Tombol Sentuh" class="w-9 h-9 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 text-sm flex items-center justify-center shadow-lg">
+            🎮
+          </button>
+          <button id="btnHudReset" title="Reset Bab [R]" class="w-9 h-9 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 text-sm flex items-center justify-center shadow-lg">
+            ↺
+          </button>
+          <button id="btnHudFullscreen" title="Fullscreen [⛶]" class="w-9 h-9 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-sky-300 text-sm font-bold flex items-center justify-center shadow-lg">
+            ⛶
+          </button>
+          <button id="btnHudSound" title="Suara" class="w-9 h-9 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-200 text-sm flex items-center justify-center shadow-lg">
+            🔊
+          </button>
+          <button id="btnHudMenu" title="Menu" class="w-9 h-9 rounded-xl bg-slate-900/90 hover:bg-rose-900/80 border border-slate-700 text-slate-200 text-sm flex items-center justify-center shadow-lg">
+            ☰
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Chat Emote Bar (Keys 1-5) -->
+      <div id="quickChatBar" class="absolute top-14 left-2.5 z-20 flex items-center gap-1 pointer-events-auto">
+        <button data-emote="1" class="qc-btn px-2 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-semibold text-slate-200 backdrop-blur-sm">1 👋</button>
+        <button data-emote="2" class="qc-btn px-2 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-semibold text-slate-200 backdrop-blur-sm">2 ⬆️ Naik!</button>
+        <button data-emote="3" class="qc-btn px-2 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-semibold text-slate-200 backdrop-blur-sm">3 🔘 Tekan!</button>
+        <button data-emote="4" class="qc-btn px-2 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-semibold text-slate-200 backdrop-blur-sm">4 🏃 Lari!</button>
+        <button data-emote="5" class="qc-btn px-2 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-[11px] font-semibold text-slate-200 backdrop-blur-sm">5 🎉 Mantap!</button>
+      </div>
+
+      <!-- Kanvas Permainan Utama 1000x560 -->
+      <div id="canvasWrapper" class="w-full h-full flex items-center justify-center">
+        <canvas id="gameCanvas" width="1000" height="560"></canvas>
+      </div>
+
+      <!-- Panel Petunjuk Teka-Teki (Muncul saat tombol 💡 Petunjuk diklik) -->
+      <div id="hintPopover" class="hidden absolute top-24 left-3 z-25 max-w-md bg-slate-900/95 border border-amber-400/50 rounded-2xl p-4 shadow-2xl backdrop-blur-md">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-extrabold uppercase tracking-wider text-amber-300">💡 Strategi Memecahkan Bab Ini</span>
+          <button id="btnCloseHint" class="text-xs text-slate-400 hover:text-white font-bold px-1.5">✕</button>
+        </div>
+        <p id="hintText" class="text-xs sm:text-sm text-slate-200 leading-relaxed"></p>
+      </div>
+
+      <!-- Overlay Pengantar Storyboard Bab -->
+      <div id="chapterIntroOverlay" class="hidden absolute inset-0 z-25 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm cursor-pointer">
+        <div class="max-w-xl w-full bg-slate-900/95 border border-sky-500/40 rounded-3xl p-6 text-center shadow-2xl">
+          <div id="introChapterNum" class="text-xs font-extrabold uppercase tracking-widest text-sky-400 mb-1">BAB 1</div>
+          <h2 id="introChapterTitle" class="text-2xl font-extrabold text-white mb-3">Gerbang Gema &amp; Panjat Bahu</h2>
+          <p id="introChapterStory" class="text-sm text-slate-300 leading-relaxed mb-4"></p>
+          <div class="inline-block px-4 py-1.5 rounded-full bg-sky-500/20 text-sky-300 text-xs font-semibold">
+            Ketuk layar atau tekan tombol apa saja untuk mulai
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner Storyboard Bawah Transparan -->
+      <div id="storyBar" class="absolute bottom-2 left-1/2 -translate-x-1/2 z-15 w-[94%] max-w-3xl px-4 py-2 rounded-2xl bg-slate-900/80 border border-slate-700/70 backdrop-blur-md text-center pointer-events-none shadow-xl">
+        <p id="storyBarText" class="text-xs sm:text-sm text-slate-200 font-medium leading-snug"></p>
+      </div>
+
+      <!-- Kontrol Sentuh Virtual Mobile (iOS & Android) -->
+      <div id="touchControls" style="padding-bottom: env(safe-area-inset-bottom, 0px);" class="hidden absolute bottom-14 left-0 right-0 z-20 px-4 sm:px-8 flex items-end justify-between pointer-events-none">
+        <!-- D-Pad Kiri & Kanan -->
+        <div class="flex items-center gap-3 pointer-events-auto">
+          <button id="touchLeft" class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-slate-800/80 active:bg-sky-500/60 border-2 border-slate-600/80 text-white text-2xl font-bold flex items-center justify-center shadow-lg backdrop-blur-sm">
+            ◀
+          </button>
+          <button id="touchRight" class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-slate-800/80 active:bg-sky-500/60 border-2 border-slate-600/80 text-white text-2xl font-bold flex items-center justify-center shadow-lg backdrop-blur-sm">
+            ▶
+          </button>
+        </div>
+
+        <!-- Tombol Ganti, Aksi & Lompat -->
+        <div class="flex items-center gap-2.5 pointer-events-auto">
+          <button id="touchSwitch" class="px-3 h-14 rounded-2xl bg-amber-600/80 active:bg-amber-500 border-2 border-amber-400/70 text-white text-xs font-extrabold flex items-center justify-center shadow-lg backdrop-blur-sm">
+            GANTI
+          </button>
+          <button id="touchAction" class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-600/80 active:bg-indigo-500 border-2 border-indigo-400/80 text-white text-xs sm:text-sm font-extrabold flex items-center justify-center shadow-lg backdrop-blur-sm">
+            AKSI
+          </button>
+          <button id="touchJump" class="w-16 h-16 sm:w-18 sm:h-18 rounded-full bg-emerald-600/85 active:bg-emerald-500 border-2 border-emerald-400/80 text-white text-2xl font-bold flex items-center justify-center shadow-lg backdrop-blur-sm">
+            ▲
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Kemenangan Akhir Bab 10 -->
+      <div id="victoryModal" class="hidden absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+        <div class="max-w-md w-full bg-slate-900 border border-amber-400/50 rounded-3xl p-6 text-center shadow-2xl">
+          <div class="text-5xl mb-2">👑</div>
+          <h2 class="text-2xl font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-emerald-300 bg-clip-text text-transparent mb-2">
+            Mahkota Cahaya Menara Gema Menyala!
+          </h2>
+          <p class="text-sm text-slate-300 leading-relaxed mb-5">
+            Selamat! Kalian telah menaklukkan seluruh 10 lantai teka-teki Menara Gema dengan kecerdasan, ketepatan waktu, dan kerja sama tim yang luar biasa.
+          </p>
+          <div class="flex gap-2">
+            <button id="btnVictoryReplay" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm">
+              Ulangi dari Bab 1
+            </button>
+            <button id="btnVictoryMenu" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-extrabold text-sm">
+              Menu Utama
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Toast Notifikasi Non-Blocking -->
+    <div id="toastBox" class="pointer-events-none fixed top-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900/95 border border-sky-400/50 text-sky-200 text-xs sm:text-sm font-semibold shadow-2xl opacity-0 transition-opacity duration-300"></div>
+
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      /* =========================================================================
+         1. KUSTOMISASI STICKMAN, EMOTE & SISTEM SAVE
+         ========================================================================= */
+      const NEON_COLORS = [
+        { name: 'Biru Kristal', hex: '#38bdf8' },
+        { name: 'Merah Ruby', hex: '#f87171' },
+        { name: 'Hijau Zamrud', hex: '#34d399' },
+        { name: 'Emas Surya', hex: '#fbbf24' },
+        { name: 'Ungu Ametis', hex: '#c084fc' },
+        { name: 'Pink Neon', hex: '#f472b6' },
+        { name: 'Sian Gema', hex: '#22d3ee' },
+        { name: 'Oranye Bara', hex: '#fb923c' }
+      ];
+
+      const HATS = [
+        { id: 'none', label: 'Polos' },
+        { id: 'crown', label: 'Mahkota' },
+        { id: 'ninja', label: 'Ninja' },
+        { id: 'wizard', label: 'Penyihir' },
+        { id: 'headphones', label: 'Headphone' },
+        { id: 'halo', label: 'Halo' },
+        { id: 'horns', label: 'Tanduk' }
+      ];
+
+      const FACES = [
+        { id: 'focus', label: 'Fokus' },
+        { id: 'smile', label: 'Senyum' },
+        { id: 'cool', label: 'Keren' },
+        { id: 'determined', label: 'Tekad' },
+        { id: 'surprised', label: 'Terkejut' }
+      ];
+
+      const QUICK_EMOTES = {
+        '1': '👋 Halo!',
+        '2': '⬆️ Naik ke kepalaku!',
+        '3': '🔘 Injak tombol!',
+        '4': '🏃 Lari sekarang!',
+        '5': '🎉 Mantap!'
+      };
+
+      const STORAGE_KEY = 'sticksync_menara_gema_master_v4';
+
+      let profile = {
+        name: 'Penjelajah',
+        color: '#38bdf8',
+        hat: 'crown',
+        face: 'focus',
+        unlockedChapter: 0,
+        completedChapters: []
+      };
+
+      let previewAnimMode = 'idle'; // 'idle', 'run', 'jump'
+
+      function loadSavedProfile() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            profile = { ...profile, ...JSON.parse(raw) };
+          }
+        } catch (e) {}
+      }
+
+      function saveProfileToStorage() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+        } catch (e) {}
+        updateSaveUI();
+      }
+
+      function generatePortableSaveCode() {
+        const payload = {
+          n: profile.name,
+          c: profile.color,
+          h: profile.hat,
+          f: profile.face,
+          u: profile.unlockedChapter,
+          d: profile.completedChapters
+        };
+        return 'STICKSYNC-' + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      }
+
+      function importPortableSaveCode(codeStr) {
+        try {
+          const clean = codeStr.trim();
+          if (!clean.startsWith('STICKSYNC-')) return false;
+          const jsonStr = decodeURIComponent(escape(atob(clean.slice('STICKSYNC-'.length))));
+          const data = JSON.parse(jsonStr);
+          if (typeof data.u === 'number') {
+            profile.name = (data.n || 'Penjelajah').slice(0, 14);
+            profile.color = data.c || '#38bdf8';
+            profile.hat = data.h || 'none';
+            profile.face = data.f || 'focus';
+            profile.unlockedChapter = Math.max(0, Math.min(9, data.u));
+            profile.completedChapters = Array.isArray(data.d) ? data.d : [];
+            saveProfileToStorage();
+            syncCustomizationUI();
+            return true;
+          }
+        } catch (e) {}
+        return false;
+      }
+
+      /* =========================================================================
+         2. AUDIO PROSEDURAL (WEB AUDIO API)
+         ========================================================================= */
+      let audioCtx = null;
+      let soundMuted = false;
+
+      function ensureAudio() {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+      }
+
+      function playSfx(type) {
+        if (soundMuted) return;
+        ensureAudio();
+        if (!audioCtx) return;
+
+        try {
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          if (type === 'jump') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(195, now);
+            osc.frequency.exponentialRampToValueAtTime(430, now + 0.14);
+            gain.gain.setValueAtTime(0.13, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+          } else if (type === 'lever') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(310, now);
+            osc.frequency.setValueAtTime(520, now + 0.07);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.start(now);
+            osc.stop(now + 0.2);
+          } else if (type === 'door') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(280, now);
+            osc.frequency.exponentialRampToValueAtTime(560, now + 0.24);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
+          } else if (type === 'sync') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.setValueAtTime(554.37, now + 0.08);
+            osc.frequency.setValueAtTime(659.25, now + 0.16);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+            osc.start(now);
+            osc.stop(now + 0.36);
+          } else if (type === 'error') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(175, now);
+            osc.frequency.linearRampToValueAtTime(110, now + 0.28);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.29);
+            osc.start(now);
+            osc.stop(now + 0.29);
+          } else if (type === 'tick') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            osc.start(now);
+            osc.stop(now + 0.06);
+          } else if (type === 'laser') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(240, now);
+            osc.frequency.exponentialRampToValueAtTime(60, now + 0.28);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.29);
+            osc.start(now);
+            osc.stop(now + 0.29);
+          } else if (type === 'checkpoint') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(783.99, now + 0.1);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.25);
+          } else if (type === 'portal') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(920, now + 0.55);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.58);
+            osc.start(now);
+            osc.stop(now + 0.58);
+          }
+        } catch (e) {}
+      }
+
+      /* =========================================================================
+         3. 10 BAB TEKA-TEKI MULTI-RUANGAN (100% BISA DISELESAIKAN 2 PEMAIN)
+         ========================================================================= */
+      const CHAPTERS = [
+        {
+          id: 0,
+          title: 'Gerbang Gema & Panjat Bahu',
+          subtitle: 'Panjat Bahu Dorong Peti • Jembatan Waktu 8d • Segel Sinkronisasi',
+          story: 'Bab 1: Menara Gema menyambut kalian dengan tiga ujian kerja sama. Panjat bahu rekanmu untuk menjatuhkan peti batu ke pelat gerbang, pacu waktu melintasi jembatan cahaya, lalu satukan langkah di pelat sinkronisasi.',
+          hint: '1) Lompat ke atas kepala teman untuk naik ke balkon kiri (y=335), lalu dorong peti jatuh ke pelat oranye. 2) Satu pemain menginjak pelat waktu 8d sementara rekan berlari menyeberang & menarik tuas permanen. 3) Injak kedua pelat SYNC bersamaan!',
+          build: () => ({
+            width: 2800,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 930, y: 490, active: false },
+              { x: 1860, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 210, y: 250, w: 130, h: 66, title: 'PRASASTI I', lines: ['PANJAT BAHU', 'DORONG PETI'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 1200, h: 70, kind: 'ground' },
+              // Balkon tinggi (155px di atas lantai -> butuh Player Stacking)
+              { x: 350, y: 335, w: 260, h: 20 },
+              // Chasm 1200..1500 dijembatani oleh Bridge br1
+              { x: 1500, y: 490, w: 1300, h: 70, kind: 'ground' },
+              // Chamber 3 tangga
+              { x: 2040, y: 405, w: 200, h: 20 }
+            ],
+            bridges: [
+              { id: 'br1', x: 1200, y: 490, w: 300, h: 22, open: false, color: '#22d3ee' }
+            ],
+            crates: [
+              { id: 'c1', x: 420, y: 291, spawnX: 420, spawnY: 291, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 840, y: 330, w: 24, h: 160, open: false, color: '#fb923c' },
+              { id: 'd2', x: 2520, y: 330, w: 24, h: 160, open: false, color: '#c084fc' }
+            ],
+            lasers: [
+              { id: 'lz1', x: 1570, y: 350, w: 14, h: 140, active: true, color: '#f43f5e' }
+            ],
+            switches: [
+              { id: 'p1', kind: 'plate', x: 670, y: 474, w: 52, h: 16, active: false, targets: ['d1'], color: '#fb923c' },
+              { id: 'tm1', kind: 'timed', duration: 8, timer: 0, x: 1060, y: 474, w: 48, h: 16, active: false, targets: ['br1'], offLasers: ['lz1'], color: '#22d3ee' },
+              { id: 'l1', kind: 'lever', x: 1650, y: 454, w: 32, h: 36, active: false, permanent: true, targets: ['br1'], offLasers: ['lz1'], color: '#34d399' },
+              { id: 'sy1a', kind: 'sync', syncGroup: 'g1', x: 2110, y: 389, w: 48, h: 16, active: false, targets: ['d2'], color: '#c084fc' },
+              { id: 'sy1b', kind: 'sync', syncGroup: 'g1', x: 2310, y: 474, w: 48, h: 16, active: false, targets: ['d2'], color: '#c084fc' }
+            ],
+            portal: { x: 2660, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 1,
+          title: 'Sandi Tiga Pilar',
+          subtitle: 'Deduksi Urutan Rune • Transportasi Peti di Atas Lift',
+          story: 'Bab 2: Prasasti kuno di dinding ruangan mengukir sandi tiga elemen. Pecahkan urutan tuas sesuai petunjuk batu, lalu gunakan lift pengangkat untuk memindahkan peti batu ke pelat lantai atas.',
+          hint: '1) Lihat prasasti di dinding: tarik tuas urutan MERAH -> BIRU -> HIJAU (salah urutan akan mereset!). 2) Dorong peti ke atas lift, rekan menahan pelat lift di bawah, lalu dorong peti ke pelat atas.',
+          build: () => ({
+            width: 2950,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 1040, y: 490, active: false },
+              { x: 2060, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 180, y: 220, w: 195, h: 78, title: 'SANDI TIGA PILAR', lines: ['1. MERAH   2. BIRU', '3. HIJAU'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 2950, h: 70, kind: 'ground' },
+              // Chamber 1: platform untuk tuas biru
+              { x: 470, y: 395, w: 190, h: 20 },
+              // Chamber 2: Lift & platform penerima peti di atas
+              { id: 'el1', x: 1420, y: 490, x1: 1420, y1: 490, x2: 1420, y2: 335, w: 110, h: 20, kind: 'lift', speed: 140 },
+              { x: 1545, y: 335, w: 320, h: 20 },
+              { x: 1200, y: 410, w: 160, h: 20 },
+              // Chamber 3: Balkon stacking
+              { x: 2240, y: 335, w: 230, h: 20 }
+            ],
+            bridges: [],
+            crates: [
+              { id: 'c1', x: 1320, y: 446, spawnX: 1320, spawnY: 446, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 940, y: 330, w: 24, h: 160, open: false, color: '#38bdf8' },
+              { id: 'd2', x: 1960, y: 330, w: 24, h: 160, open: false, color: '#fbbf24' },
+              { id: 'd3', x: 2660, y: 330, w: 24, h: 160, open: false, color: '#34d399' }
+            ],
+            lasers: [],
+            switches: [
+              // Sequence Lock 3-warna (Merah=1, Biru=2, Hijau=3)
+              { id: 'seq_b', kind: 'seq', seqGroup: 'rune2', seqOrder: 2, seqTotal: 3, label: 'BIRU', x: 545, y: 359, w: 32, h: 36, active: false, targets: ['d1'], color: '#38bdf8' },
+              { id: 'seq_r', kind: 'seq', seqGroup: 'rune2', seqOrder: 1, seqTotal: 3, label: 'MERAH', x: 340, y: 454, w: 32, h: 36, active: false, targets: ['d1'], color: '#f87171' },
+              { id: 'seq_g', kind: 'seq', seqGroup: 'rune2', seqOrder: 3, seqTotal: 3, label: 'HIJAU', x: 730, y: 454, w: 32, h: 36, active: false, targets: ['d1'], color: '#34d399' },
+              // Lift control & upper crate plate
+              { id: 'p_lift', kind: 'plate', x: 1140, y: 474, w: 48, h: 16, active: false, moveTargets: ['el1'], color: '#38bdf8' },
+              { id: 'p_top', kind: 'plate', x: 1740, y: 319, w: 52, h: 16, active: false, targets: ['d2'], color: '#fbbf24' },
+              // Chamber 3 stacking lever
+              { id: 'l3', kind: 'lever', x: 2340, y: 299, w: 32, h: 36, active: false, permanent: true, targets: ['d3'], color: '#34d399' }
+            ],
+            portal: { x: 2810, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 2,
+          title: 'Paradoks Tuas Kembar',
+          subtitle: 'Tuas Terbalik Ganda • Dua Peti Laser • Sandi Romawi Mundur',
+          story: 'Bab 3: Mekanisme terbalik menguji koordinasi kalian—membuka gerbang pertama justru menutup gerbang kedua! Setelah meloloskan rekanmu, pecahkan sandi angka Romawi mundur di ruang kristal.',
+          hint: '1) Tarik tuas terbalik (Merah/Biru) agar Gerbang 1 terbuka untuk rekanmu, lalu rekanmu menginjak pelat/tuas pembebas di seberang Gerbang 2. 2) Dorong 2 peti ke pelat laser. 3) Tarik tuas urutan mundur: IV -> III -> II -> I.',
+          build: () => ({
+            width: 3200,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 1100, y: 490, active: false },
+              { x: 2150, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 2230, y: 215, w: 210, h: 78, title: 'SANDI ROMAWI MUNDUR', lines: ['IV → III → II → I'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 3200, h: 70, kind: 'ground' },
+              // Chamber 1: platform tengah
+              { x: 580, y: 405, w: 180, h: 20 },
+              // Chamber 2: platform peti atas
+              { x: 1220, y: 395, w: 220, h: 20 },
+              // Chamber 3: platform bertingkat untuk Romawi
+              { x: 2340, y: 405, w: 180, h: 20 },
+              { x: 2580, y: 330, w: 190, h: 20 }
+            ],
+            bridges: [],
+            crates: [
+              { id: 'c1', x: 1280, y: 351, spawnX: 1280, spawnY: 351, w: 44, h: 44, vx: 0, vy: 0 },
+              { id: 'c2', x: 1200, y: 446, spawnX: 1200, spawnY: 446, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 460, y: 330, w: 24, h: 160, open: false, color: '#38bdf8' },
+              { id: 'd2', x: 860, y: 330, w: 24, h: 160, open: true, color: '#f87171' },
+              { id: 'd3', x: 2030, y: 330, w: 24, h: 160, open: false, color: '#fbbf24' },
+              { id: 'd4', x: 2920, y: 330, w: 24, h: 160, open: false, color: '#c084fc' }
+            ],
+            lasers: [
+              { id: 'lz1', x: 1680, y: 350, w: 14, h: 140, active: true, color: '#f43f5e' },
+              { id: 'lz2', x: 1880, y: 350, w: 14, h: 140, active: true, color: '#f43f5e' }
+            ],
+            switches: [
+              // Coupled toggle lever: membalikkan d1 dan d2
+              { id: 'inv1', kind: 'toggle', x: 280, y: 454, w: 32, h: 36, active: false, toggleDoors: ['d1', 'd2'], color: '#f472b6' },
+              // Tuas pembebas di balik Gerbang 2 yang membuka d1 & d2 permanen!
+              { id: 'l_free', kind: 'lever', x: 950, y: 454, w: 32, h: 36, active: false, permanent: true, forceOpenDoors: ['d1', 'd2'], color: '#34d399' },
+              // Dual crate plates
+              { id: 'p1', kind: 'plate', x: 1520, y: 474, w: 50, h: 16, active: false, offLasers: ['lz1'], color: '#38bdf8' },
+              { id: 'p2', kind: 'plate', x: 1750, y: 474, w: 50, h: 16, active: false, offLasers: ['lz2'], targets: ['d3'], color: '#fbbf24' },
+              // Reverse Roman Numerals: IV (1) -> III (2) -> II (3) -> I (4)
+              { id: 'rom_2', kind: 'seq', seqGroup: 'rom3', seqOrder: 3, seqTotal: 4, label: 'II', x: 2415, y: 369, w: 32, h: 36, active: false, targets: ['d4'], color: '#c084fc' },
+              { id: 'rom_4', kind: 'seq', seqGroup: 'rom3', seqOrder: 1, seqTotal: 4, label: 'IV', x: 2660, y: 294, w: 32, h: 36, active: false, targets: ['d4'], color: '#c084fc' },
+              { id: 'rom_1', kind: 'seq', seqGroup: 'rom3', seqOrder: 4, seqTotal: 4, label: 'I', x: 2810, y: 454, w: 32, h: 36, active: false, targets: ['d4'], color: '#c084fc' },
+              { id: 'rom_3', kind: 'seq', seqGroup: 'rom3', seqOrder: 2, seqTotal: 4, label: 'III', x: 2260, y: 454, w: 32, h: 36, active: false, targets: ['d4'], color: '#c084fc' }
+            ],
+            portal: { x: 3060, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 3,
+          title: 'Estafet Waktu Menara',
+          subtitle: 'Lari Estafet 8d • Dorong Peti Jembatan 9d • Lompat Lift Sinkron',
+          story: 'Bab 4: Kristal waktu berdetak kencang di lantai keempat. Kalian harus berpacu dengan hitungan mundur jembatan cahaya dan menyelaraskan lompatan lift untuk menembus segel menara.',
+          hint: '1) Injak pelat waktu 8d agar rekan berlari melewati laser & menarik tuas permanen. 2) Injak pelat 9d di atas untuk menyalakan jembatan sementara rekan mendorong peti ke pelat seberang. 3) Naikkan rekan dengan lift lalu injak Sync bersama!',
+          build: () => ({
+            width: 3250,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 1120, y: 490, active: false },
+              { x: 2240, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 190, y: 235, w: 185, h: 68, title: 'ESTAFET WAKTU', lines: ['TAHAN PELAT DETIK', 'REKAN MELINTAS CEPAT'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 1480, h: 70, kind: 'ground' },
+              // Platform untuk pelat waktu Chamber 2
+              { x: 1240, y: 395, w: 180, h: 20 },
+              // Chasm 1480..1760 dijembatani br2
+              { x: 1760, y: 490, w: 1490, h: 70, kind: 'ground' },
+              // Chamber 3: Lift & Sync
+              { id: 'el3', x: 2480, y: 490, x1: 2480, y1: 490, x2: 2480, y2: 335, w: 110, h: 20, kind: 'lift', speed: 150 },
+              { x: 2610, y: 335, w: 230, h: 20 }
+            ],
+            bridges: [
+              { id: 'br2', x: 1480, y: 490, w: 280, h: 22, open: false, color: '#fbbf24' }
+            ],
+            crates: [
+              { id: 'c1', x: 1360, y: 446, spawnX: 1360, spawnY: 446, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 960, y: 330, w: 24, h: 160, open: false, color: '#38bdf8' },
+              { id: 'd2', x: 2100, y: 330, w: 24, h: 160, open: false, color: '#fbbf24' },
+              { id: 'd3', x: 2980, y: 330, w: 24, h: 160, open: false, color: '#34d399' }
+            ],
+            lasers: [
+              { id: 'lz1', x: 560, y: 350, w: 14, h: 140, active: true, color: '#f43f5e' },
+              { id: 'lz2', x: 740, y: 350, w: 14, h: 140, active: true, color: '#f43f5e' }
+            ],
+            switches: [
+              { id: 'tm1', kind: 'timed', duration: 8, timer: 0, x: 270, y: 474, w: 48, h: 16, active: false, offLasers: ['lz1', 'lz2'], color: '#38bdf8' },
+              { id: 'l1', kind: 'lever', x: 830, y: 454, w: 32, h: 36, active: false, permanent: true, offLasers: ['lz1', 'lz2'], targets: ['d1'], color: '#38bdf8' },
+              { id: 'tm2', kind: 'timed', duration: 9, timer: 0, x: 1305, y: 379, w: 48, h: 16, active: false, targets: ['br2'], color: '#fbbf24' },
+              { id: 'p2', kind: 'plate', x: 1920, y: 474, w: 52, h: 16, active: false, targets: ['d2'], color: '#fbbf24' },
+              { id: 'p_el3', kind: 'plate', x: 2340, y: 474, w: 48, h: 16, active: false, moveTargets: ['el3'], color: '#22d3ee' },
+              { id: 'sy4a', kind: 'sync', syncGroup: 'g4', x: 2710, y: 319, w: 48, h: 16, active: false, targets: ['d3'], color: '#34d399' },
+              { id: 'sy4b', kind: 'sync', syncGroup: 'g4', x: 2820, y: 474, w: 48, h: 16, active: false, targets: ['d3'], color: '#34d399' }
+            ],
+            portal: { x: 3110, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 4,
+          title: 'Labirin Cermin & Lift Penyeimbang',
+          subtitle: 'Jatuhkan Peti Lewat Cerobong • Kunci Pola [NYALA - PADAM - NYALA]',
+          story: 'Bab 5: Jalur menara terbelah menjadi lorong atas dan bawah. Pemain di lantai atas harus menjatuhkan peti batu melalui cerobong lantai untuk membuka jalan bagi rekannya di bawah, lalu menyusun pola lentera rune.',
+          hint: '1) Panjat bahu teman untuk naik ke lantai atas (y=325), lalu dorong peti melewati celah cerobong (x=720) agar jatuh ke pelat bawah! 2) Di ruang tengah, atur 3 tuas menjadi pola: [NYALA] [PADAM] [NYALA].',
+          build: () => ({
+            width: 3350,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 1220, y: 490, active: false },
+              { x: 2340, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 1420, y: 215, w: 225, h: 78, title: 'POLA LENTERA RUNE', lines: ['[● NYALA] [○ PADAM] [● NYALA]'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 3350, h: 70, kind: 'ground' },
+              // Chamber 1: Lantai atas terbelah cerobong (x=710..810)
+              { x: 340, y: 335, w: 370, h: 20 },
+              { x: 810, y: 335, w: 220, h: 20 },
+              // Chamber 2: Platform untuk sakelar tengah
+              { x: 1620, y: 405, w: 180, h: 20 },
+              // Chamber 3: Lift penyeimbang
+              { id: 'el5', x: 2620, y: 490, x1: 2620, y1: 490, x2: 2620, y2: 335, w: 110, h: 20, kind: 'lift', speed: 145 },
+              { x: 2750, y: 335, w: 220, h: 20 }
+            ],
+            bridges: [],
+            crates: [
+              { id: 'c1', x: 470, y: 291, spawnX: 470, spawnY: 291, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 1090, y: 330, w: 24, h: 160, open: false, color: '#fb923c' },
+              { id: 'd2', x: 2180, y: 330, w: 24, h: 160, open: false, color: '#38bdf8' },
+              { id: 'd3', x: 3080, y: 330, w: 24, h: 160, open: false, color: '#34d399' }
+            ],
+            lasers: [],
+            switches: [
+              { id: 'p1', kind: 'plate', x: 735, y: 474, w: 54, h: 16, active: false, targets: ['d1'], color: '#fb923c' },
+              // Pattern Lock 3-switch: [ON, OFF, ON] (start: false, true, false)
+              { id: 'pat1', kind: 'pattern', patGroup: 'pat5', desired: true, label: 'I', x: 1440, y: 454, w: 32, h: 36, active: false, targets: ['d2'], color: '#38bdf8' },
+              { id: 'pat2', kind: 'pattern', patGroup: 'pat5', desired: false, label: 'II', x: 1695, y: 369, w: 32, h: 36, active: true, targets: ['d2'], color: '#38bdf8' },
+              { id: 'pat3', kind: 'pattern', patGroup: 'pat5', desired: true, label: 'III', x: 1940, y: 454, w: 32, h: 36, active: false, targets: ['d2'], color: '#38bdf8' },
+              // Chamber 3
+              { id: 'p_el5', kind: 'plate', x: 2460, y: 474, w: 48, h: 16, active: false, moveTargets: ['el5'], color: '#34d399' },
+              { id: 'l5', kind: 'lever', x: 2850, y: 299, w: 32, h: 36, active: false, permanent: true, targets: ['d3'], color: '#34d399' }
+            ],
+            portal: { x: 3210, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 5,
+          title: 'Gudang Batu & Jembatan Gantung',
+          subtitle: 'Logistik Dua Peti • Sandi Balkon Terpisah',
+          story: 'Bab 6: Dua peti batu kuno harus diseberangkan melewati jurang jembatan waktu untuk menimbang gerbang utama, dilanjutkan dengan sandi tiga simbol langit di balkon terpisah.',
+          hint: '1) Gunakan pelat waktu 9d untuk menyalakan jembatan dan menyeberangkan KEDUA peti batu ke pelat kembar. 2) Pecahkan sandi balkon: PETIR (balkon kiri atas) -> BULAN (bawah tengah) -> SURYA (kanan atas).',
+          build: () => ({
+            width: 3450,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 1360, y: 490, active: false },
+              { x: 2520, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 1560, y: 205, w: 220, h: 78, title: 'SANDI LANGIT', lines: ['1. PETIR   2. BULAN', '3. SURYA'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 520, h: 70, kind: 'ground' },
+              { x: 260, y: 395, w: 190, h: 20 },
+              // Chasm 520..780 dijembatani br1
+              { x: 780, y: 490, w: 2670, h: 70, kind: 'ground' },
+              // Chamber 2: Balkon Petir (stacking) & Surya
+              { x: 1580, y: 335, w: 210, h: 20 },
+              { x: 2120, y: 395, w: 210, h: 20 },
+              // Chamber 3
+              { x: 2740, y: 405, w: 210, h: 20 }
+            ],
+            bridges: [
+              { id: 'br1', x: 520, y: 490, w: 260, h: 22, open: false, color: '#38bdf8' }
+            ],
+            crates: [
+              { id: 'c1', x: 320, y: 351, spawnX: 320, spawnY: 351, w: 44, h: 44, vx: 0, vy: 0 },
+              { id: 'c2', x: 220, y: 446, spawnX: 220, spawnY: 446, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 1220, y: 330, w: 24, h: 160, open: false, color: '#fb923c' },
+              { id: 'd2', x: 2400, y: 330, w: 24, h: 160, open: false, color: '#fbbf24' },
+              { id: 'd3', x: 3180, y: 330, w: 24, h: 160, open: false, color: '#c084fc' }
+            ],
+            lasers: [],
+            switches: [
+              { id: 'tm1', kind: 'timed', duration: 9, timer: 0, x: 430, y: 474, w: 48, h: 16, active: false, targets: ['br1'], color: '#38bdf8' },
+              { id: 'p1', kind: 'plate', groupAll: 'g6_crates', x: 920, y: 474, w: 50, h: 16, active: false, targets: ['d1'], color: '#fb923c' },
+              { id: 'p2', kind: 'plate', groupAll: 'g6_crates', x: 1050, y: 474, w: 50, h: 16, active: false, targets: ['d1'], color: '#fb923c' },
+              // Sandi Langit: Petir (1) -> Bulan (2) -> Surya (3)
+              { id: 'sky_2', kind: 'seq', seqGroup: 'sky6', seqOrder: 2, seqTotal: 3, label: 'BULAN', x: 1920, y: 454, w: 32, h: 36, active: false, targets: ['d2'], color: '#38bdf8' },
+              { id: 'sky_1', kind: 'seq', seqGroup: 'sky6', seqOrder: 1, seqTotal: 3, label: 'PETIR', x: 1670, y: 299, w: 32, h: 36, active: false, targets: ['d2'], color: '#fbbf24' },
+              { id: 'sky_3', kind: 'seq', seqGroup: 'sky6', seqOrder: 3, seqTotal: 3, label: 'SURYA', x: 2210, y: 359, w: 32, h: 36, active: false, targets: ['d2'], color: '#fb923c' },
+              // Chamber 3 Sync
+              { id: 'sy6a', kind: 'sync', syncGroup: 'g6s', x: 2820, y: 389, w: 48, h: 16, active: false, targets: ['d3'], color: '#c084fc' },
+              { id: 'sy6b', kind: 'sync', syncGroup: 'g6s', x: 3010, y: 474, w: 48, h: 16, active: false, targets: ['d3'], color: '#c084fc' }
+            ],
+            portal: { x: 3310, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 6,
+          title: 'Lorong Laser Bergantian',
+          subtitle: 'Matriks Inverter 3-Laser • Segel 4-Titik (2 Peti + 2 Pemain)',
+          story: 'Bab 7: Tiga tirai laser berkedip bergantian dengan ruang aman sempit di antaranya. Setelah meloloskan rekanmu untuk mematikan matriks laser, satukan dua peti batu dan kedua penjelajah di atas empat pelat segel!',
+          hint: '1) Tarik tuas inverter agar rekanmu maju dari kantong aman satu ke kantong aman berikutnya, lalu tekan tuas pemati utama di ujung. 2) Taruh 2 peti di atas 2 pelat, dan 2 pemain berdiri di 2 pelat lainnya bersamaan!',
+          build: () => ({
+            width: 3550,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 1360, y: 490, active: false },
+              { x: 2640, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 1500, y: 220, w: 225, h: 74, title: 'SEGEL EMPAT PENJURU', lines: ['2 PETI + 2 PENJELAJAH', 'AKTIFKAN 4 PELAT SERENTAK'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 3550, h: 70, kind: 'ground' },
+              // Chamber 2: rak peti
+              { x: 1540, y: 395, w: 200, h: 20 },
+              { x: 2060, y: 395, w: 200, h: 20 },
+              // Chamber 3
+              { x: 2840, y: 335, w: 220, h: 20 }
+            ],
+            bridges: [],
+            crates: [
+              { id: 'c1', x: 1600, y: 351, spawnX: 1600, spawnY: 351, w: 44, h: 44, vx: 0, vy: 0 },
+              { id: 'c2', x: 1480, y: 446, spawnX: 1480, spawnY: 446, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 1230, y: 330, w: 24, h: 160, open: false, color: '#38bdf8' },
+              { id: 'd2', x: 2480, y: 330, w: 24, h: 160, open: false, color: '#fbbf24' },
+              { id: 'd3', x: 3260, y: 330, w: 24, h: 160, open: false, color: '#34d399' }
+            ],
+            lasers: [
+              { id: 'lz1', x: 480, y: 350, w: 14, h: 140, active: true, color: '#f43f5e' },
+              { id: 'lz2', x: 720, y: 350, w: 14, h: 140, active: false, color: '#f43f5e' },
+              { id: 'lz3', x: 960, y: 350, w: 14, h: 140, active: true, color: '#f43f5e' }
+            ],
+            switches: [
+              // Inverter untuk 3 laser
+              { id: 'inv7', kind: 'toggle', x: 280, y: 454, w: 32, h: 36, active: false, toggleLasers: ['lz1', 'lz2', 'lz3'], color: '#f43f5e' },
+              { id: 'l7_off', kind: 'lever', x: 1080, y: 454, w: 32, h: 36, active: false, permanent: true, offLasers: ['lz1', 'lz2', 'lz3'], targets: ['d1'], color: '#34d399' },
+              // 4-point seal (semua 4 pelat harus aktif serentak untuk mengunci d2 terbuka permanen!)
+              { id: 'p7_1', kind: 'plate', lockAll: 'seal7', x: 1840, y: 474, w: 46, h: 16, active: false, targets: ['d2'], color: '#fbbf24' },
+              { id: 'p7_2', kind: 'plate', lockAll: 'seal7', x: 1940, y: 474, w: 46, h: 16, active: false, targets: ['d2'], color: '#fbbf24' },
+              { id: 'p7_3', kind: 'plate', lockAll: 'seal7', x: 2140, y: 379, w: 46, h: 16, active: false, targets: ['d2'], color: '#fbbf24' },
+              { id: 'p7_4', kind: 'plate', lockAll: 'seal7', x: 2320, y: 474, w: 46, h: 16, active: false, targets: ['d2'], color: '#fbbf24' },
+              // Chamber 3 stacking lever
+              { id: 'l7_top', kind: 'lever', x: 2940, y: 299, w: 32, h: 36, active: false, permanent: true, targets: ['d3'], color: '#34d399' }
+            ],
+            portal: { x: 3400, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 7,
+          title: 'Ruang Gema Terbalik',
+          subtitle: 'Pendakian Menara Vertikal • Sandi Deret Matematika (2 - 4 - 6 - 8)',
+          story: 'Bab 8: Dinding menara membentuk tangga vertikal curam yang membutuhkan panjat bahu bergantian dan pijakan waktu 7 detik. Di puncak aula, ukiran angka deret genap menanti untuk dipecahkan.',
+          hint: '1) Panjat bahu ke balkon 1 (y=335), injak pelat waktu 7d untuk jembatan tengah, lalu panjat bahu lagi menuju puncak (y=190)! 2) Tarik tuas angka sesuai urutan deret genap: 2 -> 4 -> 6 -> 8.',
+          build: () => ({
+            width: 3500,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 1320, y: 490, active: false },
+              { x: 2560, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 1480, y: 215, w: 220, h: 78, title: 'DERET ANGKA GEMA', lines: ['2 → 4 → 6 → 8'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 3500, h: 70, kind: 'ground' },
+              // Chamber 1: Pendakian bertingkat
+              { x: 300, y: 335, w: 220, h: 20 },
+              { x: 780, y: 335, w: 200, h: 20 },
+              // Puncak (145px di atas y=335 -> y=190, butuh stacking kedua di atas!)
+              { x: 960, y: 190, w: 220, h: 20 },
+              // Chamber 2: Platform untuk angka 4 dan 8
+              { x: 1740, y: 405, w: 180, h: 20 },
+              { x: 2020, y: 330, w: 180, h: 20 },
+              // Chamber 3: Lift + Sync
+              { id: 'el8', x: 2780, y: 490, x1: 2780, y1: 490, x2: 2780, y2: 335, w: 110, h: 20, kind: 'lift', speed: 150 },
+              { x: 2910, y: 335, w: 210, h: 20 }
+            ],
+            bridges: [
+              { id: 'br8', x: 540, y: 335, w: 220, h: 18, open: false, color: '#22d3ee' }
+            ],
+            crates: [],
+            doors: [
+              { id: 'd1', x: 1200, y: 330, w: 24, h: 160, open: false, color: '#22d3ee' },
+              { id: 'd2', x: 2400, y: 330, w: 24, h: 160, open: false, color: '#fbbf24' },
+              { id: 'd3', x: 3240, y: 330, w: 24, h: 160, open: false, color: '#34d399' }
+            ],
+            lasers: [],
+            switches: [
+              { id: 'tm8', kind: 'timed', duration: 7, timer: 0, x: 420, y: 319, w: 46, h: 16, active: false, targets: ['br8'], color: '#22d3ee' },
+              { id: 'l8_top', kind: 'lever', x: 1060, y: 154, w: 32, h: 36, active: false, permanent: true, targets: ['d1'], color: '#22d3ee' },
+              // Math Sequence: 2 (1) -> 4 (2) -> 6 (3) -> 8 (4)
+              { id: 'm_4', kind: 'seq', seqGroup: 'math8', seqOrder: 2, seqTotal: 4, label: '4', x: 1815, y: 369, w: 32, h: 36, active: false, targets: ['d2'], color: '#fbbf24' },
+              { id: 'm_8', kind: 'seq', seqGroup: 'math8', seqOrder: 4, seqTotal: 4, label: '8', x: 2100, y: 294, w: 32, h: 36, active: false, targets: ['d2'], color: '#fbbf24' },
+              { id: 'm_2', kind: 'seq', seqGroup: 'math8', seqOrder: 1, seqTotal: 4, label: '2', x: 1560, y: 454, w: 32, h: 36, active: false, targets: ['d2'], color: '#fbbf24' },
+              { id: 'm_6', kind: 'seq', seqGroup: 'math8', seqOrder: 3, seqTotal: 4, label: '6', x: 2260, y: 454, w: 32, h: 36, active: false, targets: ['d2'], color: '#fbbf24' },
+              // Chamber 3
+              { id: 'p_el8', kind: 'plate', x: 2660, y: 474, w: 48, h: 16, active: false, moveTargets: ['el8'], color: '#34d399' },
+              { id: 'sy8a', kind: 'sync', syncGroup: 'g8s', x: 3000, y: 319, w: 48, h: 16, active: false, targets: ['d3'], color: '#34d399' },
+              { id: 'sy8b', kind: 'sync', syncGroup: 'g8s', x: 3110, y: 474, w: 48, h: 16, active: false, targets: ['d3'], color: '#34d399' }
+            ],
+            portal: { x: 3370, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 8,
+          title: 'Ujian Penjaga Inti',
+          subtitle: '4 Ruang Gabungan • Tuas Terbalik, Jembatan Peti, Sandi 4-Warna & Lift Ganda',
+          story: 'Bab 9: Penjaga Inti Menara menguji seluruh kemampuan kalian dalam empat ruang beruntun tanpa ampun. Buktikan bahwa kalian layak melangkah menuju mahkota puncak menara!',
+          hint: 'Ruang 1: Tuas terbalik membuka Gerbang 1 & menutup Gerbang 2—lewat bergantian lalu tarik tuas hijau. Ruang 2: Pelat waktu 9d untuk mendorong peti. Ruang 3: Urutan warna MERAH -> EMAS -> BIRU -> UNGU. Ruang 4: Naik lift estafet menuju SYNC!',
+          build: () => ({
+            width: 3800,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 960, y: 490, active: false },
+              { x: 1920, y: 490, active: false },
+              { x: 2880, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 2020, y: 215, w: 245, h: 78, title: 'SANDI EMPAT WARNA', lines: ['MERAH → EMAS', 'BIRU → UNGU'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 1220, h: 70, kind: 'ground' },
+              // Ruang 2: Jembatan peti
+              { x: 1080, y: 395, w: 160, h: 20 },
+              { x: 1460, y: 490, w: 2340, h: 70, kind: 'ground' },
+              // Ruang 3: Platform warna
+              { x: 2240, y: 405, w: 180, h: 20 },
+              { x: 2500, y: 335, w: 180, h: 20 },
+              // Ruang 4: Lift ganda
+              { id: 'el9a', x: 3100, y: 490, x1: 3100, y1: 490, x2: 3100, y2: 350, w: 100, h: 20, kind: 'lift', speed: 150 },
+              { x: 3220, y: 350, w: 200, h: 20 }
+            ],
+            bridges: [
+              { id: 'br9', x: 1220, y: 490, w: 240, h: 22, open: false, color: '#38bdf8' }
+            ],
+            crates: [
+              { id: 'c1', x: 1120, y: 446, spawnX: 1120, spawnY: 446, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 420, y: 330, w: 24, h: 160, open: false, color: '#38bdf8' },
+              { id: 'd2', x: 740, y: 330, w: 24, h: 160, open: true, color: '#f87171' },
+              { id: 'd3', x: 1780, y: 330, w: 24, h: 160, open: false, color: '#fb923c' },
+              { id: 'd4', x: 2760, y: 330, w: 24, h: 160, open: false, color: '#c084fc' },
+              { id: 'd5', x: 3540, y: 330, w: 24, h: 160, open: false, color: '#34d399' }
+            ],
+            lasers: [],
+            switches: [
+              // Ruang 1: Coupled
+              { id: 'inv9', kind: 'toggle', x: 260, y: 454, w: 32, h: 36, active: false, toggleDoors: ['d1', 'd2'], color: '#f472b6' },
+              { id: 'l9_free', kind: 'lever', x: 820, y: 454, w: 32, h: 36, active: false, permanent: true, forceOpenDoors: ['d1', 'd2'], color: '#34d399' },
+              // Ruang 2: Timed bridge crate
+              { id: 'tm9', kind: 'timed', duration: 9, timer: 0, x: 1135, y: 379, w: 46, h: 16, active: false, targets: ['br9'], color: '#38bdf8' },
+              { id: 'p9', kind: 'plate', x: 1620, y: 474, w: 50, h: 16, active: false, targets: ['d3'], color: '#fb923c' },
+              // Ruang 3: 4-Color Cipher (Merah=1, Emas=2, Biru=3, Ungu=4)
+              { id: 'c9_b', kind: 'seq', seqGroup: 'col9', seqOrder: 3, seqTotal: 4, label: 'BIRU', x: 2315, y: 369, w: 32, h: 36, active: false, targets: ['d4'], color: '#38bdf8' },
+              { id: 'c9_r', kind: 'seq', seqGroup: 'col9', seqOrder: 1, seqTotal: 4, label: 'MERAH', x: 2060, y: 454, w: 32, h: 36, active: false, targets: ['d4'], color: '#f87171' },
+              { id: 'c9_p', kind: 'seq', seqGroup: 'col9', seqOrder: 4, seqTotal: 4, label: 'UNGU', x: 2575, y: 299, w: 32, h: 36, active: false, targets: ['d4'], color: '#c084fc' },
+              { id: 'c9_y', kind: 'seq', seqGroup: 'col9', seqOrder: 2, seqTotal: 4, label: 'EMAS', x: 2630, y: 454, w: 32, h: 36, active: false, targets: ['d4'], color: '#fbbf24' },
+              // Ruang 4: Lift + Sync
+              { id: 'p_el9', kind: 'plate', x: 2980, y: 474, w: 48, h: 16, active: false, moveTargets: ['el9a'], color: '#34d399' },
+              { id: 'sy9a', kind: 'sync', syncGroup: 'g9s', x: 3320, y: 334, w: 48, h: 16, active: false, targets: ['d5'], color: '#34d399' },
+              { id: 'sy9b', kind: 'sync', syncGroup: 'g9s', x: 3420, y: 474, w: 48, h: 16, active: false, targets: ['d5'], color: '#34d399' }
+            ],
+            portal: { x: 3670, y: 406, w: 54, h: 84 }
+          })
+        },
+        {
+          id: 9,
+          title: 'Puncak Menara Gema — Mahkota Cahaya',
+          subtitle: 'Ujian Terakhir 4 Tahap • Altar Panjat Bahu, Estafet 2 Peti & Sandi Agung',
+          story: 'Bab 10 (Final): Di puncak tertinggi Menara Gema di bawah langit berbintang, empat segel agung menjaga Mahkota Cahaya. Satukan seluruh kecerdasan dan kekompakan kalian untuk menuntaskan legenda Menara Gema!',
+          hint: 'Tahap 1: Panjat bahu ke balkon altar untuk menarik tuas. Tahap 2: Gunakan jembatan waktu 9d untuk menyeberangkan 2 peti ke pelat kembar. Tahap 3: Tarik tuas terbalik agar rekanmu masuk & pecahkan sandi SURYA -> BULAN -> BINTANG -> API. Tahap 4: Injak SYNC terakhir!',
+          build: () => ({
+            width: 3980,
+            spawns: [{ x: 70, y: 430 }, { x: 125, y: 430 }],
+            checkpoints: [
+              { x: 960, y: 490, active: false },
+              { x: 2040, y: 490, active: false },
+              { x: 3120, y: 490, active: false }
+            ],
+            tablets: [
+              { x: 2420, y: 205, w: 245, h: 78, title: 'SANDI MAHKOTA CAHAYA', lines: ['SURYA → BULAN', 'BINTANG → API'] }
+            ],
+            platforms: [
+              { x: 0, y: 490, w: 1320, h: 70, kind: 'ground' },
+              // Tahap 1: Altar tinggi (stacking)
+              { x: 360, y: 335, w: 230, h: 20 },
+              // Tahap 2: Chasm jembatan 2 peti
+              { x: 1120, y: 395, w: 160, h: 20 },
+              { x: 1320, y: 490, w: 2660, h: 70, kind: 'ground' },
+              // Tahap 3: Sandi Agung
+              { x: 2560, y: 405, w: 180, h: 20 },
+              { x: 2800, y: 330, w: 190, h: 20 },
+              // Tahap 4: Altar Portal Puncak
+              { x: 3320, y: 395, w: 220, h: 20 }
+            ],
+            bridges: [
+              { id: 'br10', x: 1320, y: 490, w: 240, h: 22, open: false, color: '#22d3ee' }
+            ],
+            crates: [
+              { id: 'c1', x: 1060, y: 446, spawnX: 1060, spawnY: 446, w: 44, h: 44, vx: 0, vy: 0 },
+              { id: 'c2', x: 1170, y: 351, spawnX: 1170, spawnY: 351, w: 44, h: 44, vx: 0, vy: 0 }
+            ],
+            doors: [
+              { id: 'd1', x: 820, y: 330, w: 24, h: 160, open: false, color: '#fbbf24' },
+              { id: 'd2', x: 1920, y: 330, w: 24, h: 160, open: false, color: '#22d3ee' },
+              { id: 'd3', x: 2320, y: 330, w: 24, h: 160, open: false, color: '#f472b6' },
+              { id: 'd4', x: 3030, y: 330, w: 24, h: 160, open: false, color: '#c084fc' },
+              { id: 'd5', x: 3670, y: 330, w: 24, h: 160, open: false, color: '#fbbf24' }
+            ],
+            lasers: [],
+            switches: [
+              // Tahap 1: Altar Stacking
+              { id: 'l10_1', kind: 'lever', x: 460, y: 299, w: 32, h: 36, active: false, permanent: true, targets: ['d1'], color: '#fbbf24' },
+              // Tahap 2: Jembatan waktu 2 peti
+              { id: 'tm10', kind: 'timed', duration: 9, timer: 0, x: 1180, y: 379, w: 46, h: 16, active: false, targets: ['br10'], color: '#22d3ee' },
+              { id: 'p10_a', kind: 'plate', groupAll: 'g10_c', x: 1640, y: 474, w: 48, h: 16, active: false, targets: ['d2'], color: '#22d3ee' },
+              { id: 'p10_b', kind: 'plate', groupAll: 'g10_c', x: 1760, y: 474, w: 48, h: 16, active: false, targets: ['d2'], color: '#22d3ee' },
+              // Tahap 3: Gerbang pembuka + Sandi Agung (Surya=1, Bulan=2, Bintang=3, Api=4)
+              { id: 'l10_gate', kind: 'lever', x: 2180, y: 454, w: 32, h: 36, active: false, permanent: true, targets: ['d3'], color: '#f472b6' },
+              { id: 'm10_2', kind: 'seq', seqGroup: 'fin10', seqOrder: 2, seqTotal: 4, label: 'BULAN', x: 2635, y: 369, w: 32, h: 36, active: false, targets: ['d4'], color: '#38bdf8' },
+              { id: 'm10_1', kind: 'seq', seqGroup: 'fin10', seqOrder: 1, seqTotal: 4, label: 'SURYA', x: 2430, y: 454, w: 32, h: 36, active: false, targets: ['d4'], color: '#fbbf24' },
+              { id: 'm10_4', kind: 'seq', seqGroup: 'fin10', seqOrder: 4, seqTotal: 4, label: 'API', x: 2880, y: 294, w: 32, h: 36, active: false, targets: ['d4'], color: '#f87171' },
+              { id: 'm10_3', kind: 'seq', seqGroup: 'fin10', seqOrder: 3, seqTotal: 4, label: 'BINTANG', x: 2930, y: 454, w: 32, h: 36, active: false, targets: ['d4'], color: '#c084fc' },
+              // Tahap 4: Sync Final
+              { id: 'sy10a', kind: 'sync', syncGroup: 'g10s', x: 3410, y: 379, w: 48, h: 16, active: false, targets: ['d5'], color: '#fbbf24' },
+              { id: 'sy10b', kind: 'sync', syncGroup: 'g10s', x: 3560, y: 474, w: 48, h: 16, active: false, targets: ['d5'], color: '#fbbf24' }
+            ],
+            portal: { x: 3810, y: 406, w: 58, h: 84 }
+          })
+        }
+      ];
+
+      /* =========================================================================
+         4. STATE PERMAINAN, FISIKA & MULTIPLAYER
+         ========================================================================= */
+      const GRAVITY = 1650;
+      const MOVE_SPEED = 278;
+      const JUMP_VEL = -655;
+      const PLAYER_W = 24;
+      const PLAYER_H = 52;
+
+      let screenMode = 'MENU'; // MENU, LOBBY, PLAYING
+      let isOnline = false;
+      let isHost = false;
+      let roomCode = '';
+      let peer = null;
+      let hostConn = null;
+      let clientConns = new Map();
+      let broadcastChan = null;
+      let myPeerId = 'local-host';
+      let currentPingMs = 14;
+
+      let currentChapterIdx = 0;
+      let level = null;
+      let activeSoloIdx = 0;
+      let cameraX = 0;
+      let particles = [];
+      let syncTimers = {};
+      let seqProgress = {}; // seqGroup -> current step (0..total)
+      let lockedGroups = {}; // groupAll / lockAll -> true once solved
+      let lastTickSecond = {}; // timed switch id -> last integer second played
+      let fireworksActive = false;
+      let fireworkTimer = 0;
+
+      let players = [];
+
+      const keys = {};
+      const virtualInput = { left: false, right: false, jump: false, action: false };
+      let prevJumpPressed = false;
+      let prevActionPressed = false;
+
+      function createPlayerObj(id, name, color, hat, face, x, y, isLocal) {
+        return {
+          id,
+          name,
+          color,
+          hat,
+          face,
+          x,
+          y,
+          targetX: x,
+          targetY: y,
+          vx: 0,
+          vy: 0,
+          w: PLAYER_W,
+          h: PLAYER_H,
+          grounded: false,
+          coyoteTimer: 0,
+          jumpBufferTimer: 0,
+          leverHoldTimer: 0,
+          facing: 1,
+          animTime: 0,
+          isLocal,
+          respawnX: x,
+          respawnY: y,
+          emoteText: '',
+          emoteTimer: 0
+        };
+      }
+
+      function spawnParticles(x, y, color, count = 14, speedMult = 1) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = (65 + Math.random() * 210) * speedMult;
+          particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 65,
+            life: 0.45 + Math.random() * 0.4,
+            maxLife: 0.85,
+            color,
+            size: 3 + Math.random() * 3.2
+          });
+        }
+      }
+
+      /* =========================================================================
+         5. MEMUAT BAB & STORYBOARD
+         ========================================================================= */
+      let introTimeout = null;
+
+      function loadChapter(idx, showIntro = true) {
+        currentChapterIdx = Math.max(0, Math.min(CHAPTERS.length - 1, idx));
+        const ch = CHAPTERS[currentChapterIdx];
+        level = ch.build();
+        particles = [];
+        syncTimers = {};
+        seqProgress = {};
+        lockedGroups = {};
+        lastTickSecond = {};
+        fireworksActive = false;
+
+        players.forEach((p, i) => {
+          const sp = level.spawns[i % level.spawns.length];
+          const offset = Math.floor(i / 2) * 28;
+          p.x = sp.x + offset;
+          p.y = sp.y;
+          p.targetX = p.x;
+          p.targetY = p.y;
+          p.vx = 0;
+          p.vy = 0;
+          p.grounded = false;
+          p.respawnX = p.x;
+          p.respawnY = p.y;
+        });
+
+        cameraX = 0;
+        updateHudInfo();
+
+        if (showIntro) {
+          const overlay = document.getElementById('chapterIntroOverlay');
+          document.getElementById('introChapterNum').textContent = `BAB ${currentChapterIdx + 1} DARI ${CHAPTERS.length}`;
+          document.getElementById('introChapterTitle').textContent = ch.title;
+          document.getElementById('introChapterStory').textContent = ch.story;
+          overlay.classList.remove('hidden');
+
+          if (introTimeout) clearTimeout(introTimeout);
+          introTimeout = setTimeout(() => {
+            overlay.classList.add('hidden');
+          }, 3600);
+        }
+
+        if (isOnline && isHost) {
+          broadcastWorldState('chapter_change');
+        }
+      }
+
+      function updateHudInfo() {
+        const ch = CHAPTERS[currentChapterIdx];
+        document.getElementById('hudChapterBadge').textContent = `Bab ${currentChapterIdx + 1}/${CHAPTERS.length}`;
+        document.getElementById('hudChapterTitle').textContent = ch.title;
+        document.getElementById('storyBarText').textContent = ch.story;
+        document.getElementById('hintText').textContent = ch.hint;
+
+        const switchBtn = document.getElementById('btnHudSwitchChar');
+        const touchSwitch = document.getElementById('touchSwitch');
+        const activeBadge = document.getElementById('hudActiveCharBadge');
+
+        if (!isOnline) {
+          switchBtn.classList.remove('hidden');
+          touchSwitch.classList.remove('hidden');
+          activeBadge.classList.remove('hidden');
+          const activeP = players[activeSoloIdx];
+          activeBadge.textContent = `Kendali: ${activeP ? activeP.name : 'P1'} [Tab]`;
+        } else {
+          switchBtn.classList.add('hidden');
+          touchSwitch.classList.add('hidden');
+          activeBadge.classList.add('hidden');
+        }
+      }
+
+      /* =========================================================================
+         6. FISIKA & LOGIKA TEKA-TEKI LENGKAP
+         ========================================================================= */
+      function rectsOverlap(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+
+      function getMyControlledPlayer() {
+        if (!isOnline) return players[activeSoloIdx] || players[0];
+        return players.find(p => p.id === myPeerId) || players[0];
+      }
+
+      function getAllSolidPlatforms() {
+        const list = [...level.platforms];
+        if (level.bridges) {
+          for (const br of level.bridges) {
+            if (br.open) list.push(br);
+          }
+        }
+        return list;
+      }
+
+      function stepPhysics(dt) {
+        if (!level || screenMode !== 'PLAYING') return;
+
+        // Fireworks celebration on Bab 10 victory
+        if (fireworksActive) {
+          fireworkTimer -= dt;
+          if (fireworkTimer <= 0) {
+            fireworkTimer = 0.35;
+            const colors = ['#38bdf8', '#fbbf24', '#f472b6', '#34d399', '#c084fc'];
+            const col = colors[Math.floor(Math.random() * colors.length)];
+            spawnParticles(cameraX + 150 + Math.random() * 700, 100 + Math.random() * 200, col, 28, 1.35);
+          }
+        }
+
+        // 1. Update Elevator / Moving Platforms & Carry Riders
+        for (const pl of level.platforms) {
+          if (pl.kind === 'lift') {
+            const activators = level.switches.filter(s => s.moveTargets && s.moveTargets.includes(pl.id));
+            const active = activators.some(s => s.active || s.lockedPermanent);
+            const tx = active ? pl.x2 : pl.x1;
+            const ty = active ? pl.y2 : pl.y1;
+            const prevX = pl.x;
+            const prevY = pl.y;
+
+            const dx = tx - pl.x;
+            const dy = ty - pl.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > 0.5) {
+              const step = Math.min(dist, (pl.speed || 140) * dt);
+              pl.x += (dx / dist) * step;
+              pl.y += (dy / dist) * step;
+            } else {
+              pl.x = tx;
+              pl.y = ty;
+            }
+
+            const moveX = pl.x - prevX;
+            const moveY = pl.y - prevY;
+            if (moveX !== 0 || moveY !== 0) {
+              // Bawa pemain dan peti yang berdiri di atas lift
+              for (const p of players) {
+                if (Math.abs((p.y + p.h) - prevY) < 8 && p.x + p.w > pl.x && p.x < pl.x + pl.w) {
+                  p.x += moveX;
+                  p.y += moveY;
+                }
+              }
+              for (const c of level.crates) {
+                if (Math.abs((c.y + c.h) - prevY) < 8 && c.x + c.w > pl.x && c.x < pl.x + pl.w) {
+                  c.x += moveX;
+                  c.y += moveY;
+                }
+              }
+            }
+          }
+        }
+
+        const solidPlatforms = getAllSolidPlatforms();
+
+        const jumpNow = !!(keys['ArrowUp'] || keys['KeyW'] || keys['Space'] || virtualInput.jump);
+        const actionNow = !!(keys['KeyE'] || virtualInput.action);
+        const jumpJustPressed = jumpNow && !prevJumpPressed;
+        const actionJustPressed = actionNow && !prevActionPressed;
+        prevJumpPressed = jumpNow;
+        prevActionPressed = actionNow;
+
+        // 2. Update Pemain
+        players.forEach((p, idx) => {
+          if (p.emoteTimer > 0) p.emoteTimer = Math.max(0, p.emoteTimer - dt);
+
+          const canControl = !isOnline ? (idx === activeSoloIdx) : (p.id === myPeerId);
+
+          if (canControl) {
+            const left = !!(keys['ArrowLeft'] || keys['KeyA'] || virtualInput.left);
+            const right = !!(keys['ArrowRight'] || keys['KeyD'] || virtualInput.right);
+
+            if (left && !right) {
+              p.vx = -MOVE_SPEED;
+              p.facing = -1;
+            } else if (right && !left) {
+              p.vx = MOVE_SPEED;
+              p.facing = 1;
+            } else {
+              p.vx *= Math.pow(0.001, dt);
+              if (Math.abs(p.vx) < 8) p.vx = 0;
+            }
+
+            if (jumpJustPressed) {
+              p.jumpBufferTimer = 0.13;
+            }
+          } else if (!isOnline) {
+            p.vx *= Math.pow(0.001, dt);
+            if (Math.abs(p.vx) < 8) p.vx = 0;
+          } else {
+            // Interpolasi halus pemain online
+            p.x += (p.targetX - p.x) * Math.min(1, dt * 18);
+            p.y += (p.targetY - p.y) * Math.min(1, dt * 18);
+            p.animTime += dt * (Math.abs(p.vx) > 15 ? 11 : 2.5);
+            return;
+          }
+
+          if (p.grounded) p.coyoteTimer = 0.12;
+          else p.coyoteTimer = Math.max(0, p.coyoteTimer - dt);
+
+          if (p.jumpBufferTimer > 0) {
+            p.jumpBufferTimer = Math.max(0, p.jumpBufferTimer - dt);
+            if (p.coyoteTimer > 0) {
+              p.vy = JUMP_VEL;
+              p.grounded = false;
+              p.coyoteTimer = 0;
+              p.jumpBufferTimer = 0;
+              playSfx('jump');
+              spawnParticles(p.x + p.w / 2, p.y + p.h, p.color, 6);
+            }
+          }
+
+          p.vy += GRAVITY * dt;
+          if (p.vy > 980) p.vy = 980;
+
+          // Gerak Horizontal + Dorong Peti
+          p.x += p.vx * dt;
+          if (p.x < 0) p.x = 0;
+          if (p.x + p.w > level.width) p.x = level.width - p.w;
+
+          for (const pl of solidPlatforms) {
+            if (rectsOverlap(p, pl)) {
+              if (p.vx > 0) p.x = pl.x - p.w;
+              else if (p.vx < 0) p.x = pl.x + pl.w;
+            }
+          }
+
+          for (const d of level.doors) {
+            if (!d.open && rectsOverlap(p, d)) {
+              if (p.vx > 0) p.x = d.x - p.w;
+              else if (p.vx < 0) p.x = d.x + d.w;
+            }
+          }
+
+          for (const c of level.crates) {
+            if (rectsOverlap(p, c)) {
+              if (p.vx > 0 && p.x + p.w - p.vx * dt <= c.x + 8) {
+                c.vx = MOVE_SPEED * 0.72;
+                c.x += c.vx * dt;
+                p.x = c.x - p.w;
+              } else if (p.vx < 0 && p.x - p.vx * dt >= c.x + c.w - 8) {
+                c.vx = -MOVE_SPEED * 0.72;
+                c.x += c.vx * dt;
+                p.x = c.x + c.w;
+              }
+            }
+          }
+
+          // Gerak Vertikal + Player Stacking
+          const prevBottom = p.y + p.h;
+          p.y += p.vy * dt;
+          p.grounded = false;
+
+          for (const pl of solidPlatforms) {
+            if (rectsOverlap(p, pl)) {
+              if (p.vy > 0 && prevBottom <= pl.y + 18) {
+                p.y = pl.y - p.h;
+                p.vy = 0;
+                p.grounded = true;
+              } else if (p.vy < 0 && p.y - p.vy * dt >= pl.y + pl.h - 16) {
+                p.y = pl.y + pl.h;
+                p.vy = 0;
+              }
+            }
+          }
+
+          for (const c of level.crates) {
+            if (rectsOverlap(p, c)) {
+              if (p.vy > 0 && prevBottom <= c.y + 18) {
+                p.y = c.y - p.h;
+                p.vy = 0;
+                p.grounded = true;
+              }
+            }
+          }
+
+          // Player Stacking: berdiri di atas kepala teman
+          for (const other of players) {
+            if (other.id === p.id) continue;
+            if (rectsOverlap(p, other)) {
+              if (p.vy >= 0 && prevBottom <= other.y + 18) {
+                p.y = other.y - p.h;
+                p.vy = 0;
+                p.grounded = true;
+              }
+            }
+          }
+
+          // Jatuh ke jurang -> respawn aman ke checkpoint
+          if (p.y > 600) {
+            playSfx('laser');
+            spawnParticles(p.x + p.w / 2, 540, '#f43f5e', 18);
+            p.x = p.respawnX;
+            p.y = p.respawnY;
+            p.vx = 0;
+            p.vy = 0;
+          }
+
+          p.animTime += dt * (Math.abs(p.vx) > 15 ? 11 : 2.5);
+        });
+
+        // 3. Fisika Kotak Batu & Safe Crate Respawn
+        for (const c of level.crates) {
+          c.vy += GRAVITY * dt;
+          c.vx *= Math.pow(0.0004, dt);
+          c.x += c.vx * dt;
+          c.y += c.vy * dt;
+
+          if (c.x < 0) c.x = 0;
+          if (c.x + c.w > level.width) c.x = level.width - c.w;
+
+          for (const pl of solidPlatforms) {
+            if (rectsOverlap(c, pl)) {
+              if (c.vy > 0 && c.y + c.h - c.vy * dt <= pl.y + 20) {
+                c.y = pl.y - c.h;
+                c.vy = 0;
+              } else if (c.vx > 0) {
+                c.x = pl.x - c.w;
+              } else if (c.vx < 0) {
+                c.x = pl.x + pl.w;
+              }
+            }
+          }
+          for (const d of level.doors) {
+            if (!d.open && rectsOverlap(c, d)) {
+              if (c.vx > 0) c.x = d.x - c.w;
+              else if (c.vx < 0) c.x = d.x + d.w;
+            }
+          }
+          // Crate-to-crate collision
+          for (const otherC of level.crates) {
+            if (otherC.id === c.id) continue;
+            if (rectsOverlap(c, otherC)) {
+              if (c.vy > 0 && c.y + c.h - c.vy * dt <= otherC.y + 18) {
+                c.y = otherC.y - c.h;
+                c.vy = 0;
+              } else if (c.x < otherC.x) {
+                c.x = otherC.x - c.w;
+              } else {
+                c.x = otherC.x + otherC.w;
+              }
+            }
+          }
+
+          // Safe Crate Respawn jika jatuh ke jurang
+          if (c.y > 590) {
+            playSfx('checkpoint');
+            c.x = c.spawnX;
+            c.y = c.spawnY;
+            c.vx = 0;
+            c.vy = 0;
+            spawnParticles(c.x + c.w / 2, c.y + c.h / 2, '#fbbf24', 16);
+            showToast('📦 Peti batu kembali ke posisi semula!');
+          }
+        }
+
+        // 4. Checkpoint Crystals
+        for (const cp of level.checkpoints) {
+          for (const p of players) {
+            if (Math.abs((p.x + p.w / 2) - cp.x) < 42 && Math.abs((p.y + p.h) - cp.y) < 70) {
+              if (!cp.active) {
+                cp.active = true;
+                playSfx('checkpoint');
+                spawnParticles(cp.x, cp.y - 30, '#34d399', 16);
+                showToast('💎 Kristal Checkpoint aktif!');
+              }
+              players.forEach(pl => {
+                pl.respawnX = cp.x - 12;
+                pl.respawnY = cp.y - PLAYER_H - 4;
+              });
+            }
+          }
+        }
+
+        // 5. Evaluasi Semua Jenis Sakelar & Teka-Teki
+        const nowSec = performance.now() / 1000;
+        const syncGrace = isOnline ? 0.65 : 2.6;
+        const timedMult = isOnline ? 1.0 : 1.5;
+
+        for (const sw of level.switches) {
+          if (sw.kind === 'plate') {
+            if (sw.lockedPermanent) {
+              sw.active = true;
+              continue;
+            }
+            let pressed = false;
+            const hitbox = { x: sw.x - 4, y: sw.y - 8, w: sw.w + 8, h: sw.h + 12 };
+            for (const p of players) {
+              if (rectsOverlap(p, hitbox)) pressed = true;
+            }
+            for (const c of level.crates) {
+              if (rectsOverlap(c, hitbox)) pressed = true;
+            }
+            if (pressed && !sw.active) playSfx('door');
+            sw.active = pressed;
+          } else if (sw.kind === 'timed') {
+            let pressed = false;
+            const hitbox = { x: sw.x - 4, y: sw.y - 8, w: sw.w + 8, h: sw.h + 12 };
+            for (const p of players) {
+              if (rectsOverlap(p, hitbox)) pressed = true;
+            }
+            for (const c of level.crates) {
+              if (rectsOverlap(c, hitbox)) pressed = true;
+            }
+            const maxDur = (sw.duration || 8) * timedMult;
+            if (pressed) {
+              if (!sw.active) playSfx('lever');
+              sw.timer = maxDur;
+              sw.active = true;
+            } else if (sw.timer > 0) {
+              sw.timer = Math.max(0, sw.timer - dt);
+              sw.active = sw.timer > 0;
+              const secCeil = Math.ceil(sw.timer);
+              if (sw.active && lastTickSecond[sw.id] !== secCeil && secCeil <= 5) {
+                lastTickSecond[sw.id] = secCeil;
+                playSfx('tick');
+              }
+            } else {
+              sw.active = false;
+            }
+          } else if (sw.kind === 'lever' || sw.kind === 'toggle' || sw.kind === 'seq' || sw.kind === 'pattern') {
+            if ((sw.kind === 'lever' || sw.kind === 'seq') && sw.active && (sw.permanent || sw.kind === 'seq')) {
+              continue;
+            }
+            if (sw.kind === 'pattern' && sw.lockedPermanent) {
+              continue;
+            }
+
+            let triggered = false;
+            for (const p of players) {
+              const near = rectsOverlap(p, { x: sw.x - 14, y: sw.y - 10, w: sw.w + 28, h: sw.h + 16 });
+              if (near) {
+                const isControlled = !isOnline ? (players[activeSoloIdx]?.id === p.id) : (p.id === myPeerId);
+                if (isControlled && actionJustPressed) {
+                  triggered = true;
+                }
+                p.leverHoldTimer = (p.leverHoldTimer || 0) + dt;
+                if (p.leverHoldTimer >= 0.34) {
+                  triggered = true;
+                  p.leverHoldTimer = -0.45; // Cooldown singkat agar tidak bolak-balik sendiri
+                }
+              }
+            }
+
+            if (triggered) {
+              if (sw.kind === 'lever') {
+                sw.active = true;
+                playSfx('lever');
+                spawnParticles(sw.x + sw.w / 2, sw.y + 10, sw.color || '#38bdf8', 14);
+                if (sw.forceOpenDoors) {
+                  for (const did of sw.forceOpenDoors) {
+                    const d = level.doors.find(door => door.id === did);
+                    if (d) {
+                      d.open = true;
+                      d.lockedOpen = true;
+                    }
+                  }
+                }
+              } else if (sw.kind === 'toggle') {
+                sw.active = !sw.active;
+                playSfx('lever');
+                spawnParticles(sw.x + sw.w / 2, sw.y + 10, sw.color || '#f472b6', 14);
+                if (sw.toggleDoors) {
+                  for (const did of sw.toggleDoors) {
+                    const d = level.doors.find(door => door.id === did);
+                    if (d && !d.lockedOpen) d.open = !d.open;
+                  }
+                }
+                if (sw.toggleLasers) {
+                  for (const lid of sw.toggleLasers) {
+                    const l = level.lasers.find(lz => lz.id === lid);
+                    if (l) l.active = !l.active;
+                  }
+                }
+              } else if (sw.kind === 'seq') {
+                const grp = sw.seqGroup;
+                const expected = (seqProgress[grp] || 0) + 1;
+                if (sw.seqOrder === expected) {
+                  sw.active = true;
+                  seqProgress[grp] = expected;
+                  playSfx('lever');
+                  spawnParticles(sw.x + sw.w / 2, sw.y + 10, sw.color || '#38bdf8', 14);
+                  if (expected === sw.seqTotal) {
+                    playSfx('sync');
+                    showToast('✨ Sandi Rune Terpecahkan!');
+                  } else {
+                    showToast(`🔑 Urutan Benar (${expected}/${sw.seqTotal})`);
+                  }
+                } else {
+                  // Salah urutan -> reset seluruh grup!
+                  playSfx('error');
+                  seqProgress[grp] = 0;
+                  level.switches.forEach(otherSw => {
+                    if (otherSw.seqGroup === grp) {
+                      otherSw.active = false;
+                      otherSw.errorFlash = 0.55;
+                    }
+                  });
+                  spawnParticles(sw.x + sw.w / 2, sw.y + 10, '#f43f5e', 18);
+                  showToast('❌ Urutan Sandi Salah! Prasasti direset.');
+                }
+              } else if (sw.kind === 'pattern') {
+                sw.active = !sw.active;
+                playSfx('lever');
+                spawnParticles(sw.x + sw.w / 2, sw.y + 10, sw.color || '#38bdf8', 12);
+                const grpSwitches = level.switches.filter(s => s.patGroup === sw.patGroup);
+                if (grpSwitches.every(s => s.active === s.desired)) {
+                  playSfx('sync');
+                  grpSwitches.forEach(s => {
+                    s.lockedPermanent = true;
+                    spawnParticles(s.x + s.w / 2, s.y, '#34d399', 16);
+                  });
+                  showToast('✨ Pola Lentera Rune Cocok!');
+                }
+              }
+            }
+          } else if (sw.kind === 'sync') {
+            if (sw.lockedPermanent) {
+              sw.active = true;
+              continue;
+            }
+            let stepped = false;
+            const hitbox = { x: sw.x - 4, y: sw.y - 8, w: sw.w + 8, h: sw.h + 12 };
+            for (const p of players) {
+              if (rectsOverlap(p, hitbox)) stepped = true;
+            }
+            if (stepped) syncTimers[sw.id] = nowSec;
+            sw.active = (nowSec - (syncTimers[sw.id] || -99)) <= syncGrace;
+          }
+
+          if (sw.errorFlash > 0) sw.errorFlash = Math.max(0, sw.errorFlash - dt);
+        }
+
+        // Cek grup sinkronisasi (syncGroup)
+        const syncGroups = {};
+        for (const sw of level.switches) {
+          if (sw.kind === 'sync' && sw.syncGroup) {
+            if (!syncGroups[sw.syncGroup]) syncGroups[sw.syncGroup] = [];
+            syncGroups[sw.syncGroup].push(sw);
+          }
+        }
+        for (const grp in syncGroups) {
+          const list = syncGroups[grp];
+          if (list.every(s => s.active || s.lockedPermanent) && !list[0].lockedPermanent) {
+            playSfx('sync');
+            list.forEach(s => {
+              s.lockedPermanent = true;
+              s.active = true;
+              spawnParticles(s.x + s.w / 2, s.y, s.color || '#c084fc', 18);
+            });
+            showToast('✨ Segel Sinkronisasi Terbuka Permanen!');
+          }
+        }
+
+        // Cek grup pelat 4-titik (lockAll)
+        const lockAllGroups = {};
+        for (const sw of level.switches) {
+          if (sw.lockAll) {
+            if (!lockAllGroups[sw.lockAll]) lockAllGroups[sw.lockAll] = [];
+            lockAllGroups[sw.lockAll].push(sw);
+          }
+        }
+        for (const grp in lockAllGroups) {
+          const list = lockAllGroups[grp];
+          if (list.every(s => s.active || s.lockedPermanent) && !list[0].lockedPermanent) {
+            playSfx('sync');
+            list.forEach(s => {
+              s.lockedPermanent = true;
+              s.active = true;
+              spawnParticles(s.x + s.w / 2, s.y, '#fbbf24', 18);
+            });
+            showToast('✨ Segel Empat Penjuru Terkunci Terbuka!');
+          }
+        }
+
+        // 6. Update Status Pintu, Jembatan & Laser dari Sakelar
+        for (const door of level.doors) {
+          if (door.lockedOpen) {
+            door.open = true;
+            continue;
+          }
+          const controllers = level.switches.filter(s => s.targets && s.targets.includes(door.id));
+          if (controllers.length > 0) {
+            let shouldOpen = false;
+            const seqCtrl = controllers.filter(s => s.kind === 'seq');
+            const patCtrl = controllers.filter(s => s.kind === 'pattern');
+            const grpAllCtrl = controllers.filter(s => s.groupAll);
+
+            if (seqCtrl.length > 0) {
+              shouldOpen = seqCtrl.every(s => s.active);
+            } else if (patCtrl.length > 0) {
+              shouldOpen = patCtrl.every(s => s.lockedPermanent);
+            } else if (grpAllCtrl.length > 0) {
+              shouldOpen = grpAllCtrl.every(s => s.active || s.lockedPermanent);
+            } else {
+              shouldOpen = controllers.some(s => s.active || s.lockedPermanent);
+            }
+
+            if (shouldOpen && !door.open) {
+              playSfx('door');
+              spawnParticles(door.x + door.w / 2, door.y + door.h / 2, door.color || '#38bdf8', 14);
+            }
+            door.open = shouldOpen;
+          }
+        }
+
+        if (level.bridges) {
+          for (const br of level.bridges) {
+            const controllers = level.switches.filter(s => s.targets && s.targets.includes(br.id));
+            if (controllers.length > 0) {
+              br.open = controllers.some(s => s.active || s.lockedPermanent);
+            }
+          }
+        }
+
+        for (const lz of level.lasers) {
+          const killers = level.switches.filter(s => s.offLasers && s.offLasers.includes(lz.id));
+          if (killers.length > 0) {
+            lz.active = !killers.some(s => s.active || s.lockedPermanent);
+          }
+          if (lz.active) {
+            for (const p of players) {
+              if (rectsOverlap(p, lz)) {
+                playSfx('laser');
+                spawnParticles(p.x + p.w / 2, p.y + p.h / 2, '#f43f5e', 20);
+                p.x = p.respawnX;
+                p.y = p.respawnY;
+                p.vx = 0;
+                p.vy = 0;
+                showToast('⚡ Terkena laser! Kembali ke Kristal Checkpoint.');
+              }
+            }
+          }
+        }
+
+        // 7. Cek Portal Akhir
+        const port = level.portal;
+        if (port && players.length > 0) {
+          const allInside = players.every(p =>
+            rectsOverlap(p, { x: port.x - 8, y: port.y - 8, w: port.w + 16, h: port.h + 16 })
+          );
+          if (allInside && (!isOnline || isHost)) {
+            completeCurrentChapter();
+          }
+        }
+
+        // 8. Partikel & Kamera Halus
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const pt = particles[i];
+          pt.x += pt.vx * dt;
+          pt.y += pt.vy * dt;
+          pt.vy += 420 * dt;
+          pt.life -= dt;
+          if (pt.life <= 0) particles.splice(i, 1);
+        }
+
+        const focusP = getMyControlledPlayer();
+        if (focusP) {
+          const targetCam = Math.max(0, Math.min(level.width - 1000, focusP.x + focusP.w / 2 - 420));
+          cameraX += (targetCam - cameraX) * Math.min(1, dt * 8);
+        }
+      }
+
+      function completeCurrentChapter() {
+        playSfx('portal');
+        spawnParticles(level.portal.x + 27, level.portal.y + 42, '#c084fc', 35);
+
+        if (!profile.completedChapters.includes(currentChapterIdx)) {
+          profile.completedChapters.push(currentChapterIdx);
+        }
+        if (currentChapterIdx + 1 < CHAPTERS.length) {
+          profile.unlockedChapter = Math.max(profile.unlockedChapter, currentChapterIdx + 1);
+          saveProfileToStorage();
+          showToast(`🎉 Bab ${currentChapterIdx + 1} Selesai! Menuju Bab ${currentChapterIdx + 2}...`);
+          loadChapter(currentChapterIdx + 1, true);
+        } else {
+          saveProfileToStorage();
+          fireworksActive = true;
+          fireworkTimer = 0;
+          document.getElementById('victoryModal').classList.remove('hidden');
+        }
+      }
+
+      /* =========================================================================
+         7. RENDERING STICKMAN DETAIL, KABEL ENERGI & PRASASTI RUNE
+         ========================================================================= */
+      function drawStickman(c, p, cx, cy, scale = 1, isHighlighted = false, overrideState = null) {
+        c.save();
+        c.translate(cx, cy);
+        c.scale(scale, scale);
+
+        const isJump = overrideState === 'jump' || (!overrideState && !p.grounded && p.y !== undefined);
+        const isMoving = overrideState === 'run' || (!overrideState && Math.abs(p.vx || 0) > 15);
+        const walkPhase = Math.sin(p.animTime);
+
+        const legSwing = isJump ? 8 : (isMoving ? walkPhase * 9.5 : 0);
+        const armSwing = isJump ? -11 : (isMoving ? -walkPhase * 8.5 : Math.sin(p.animTime * 0.6) * 2);
+        const bobY = isJump ? -4 : (isMoving ? Math.abs(Math.cos(p.animTime)) * -2.5 : Math.sin(p.animTime * 0.6) * 1.2);
+
+        c.shadowColor = p.color;
+        c.shadowBlur = isHighlighted ? 16 : 9;
+        c.strokeStyle = p.color;
+        c.lineWidth = 3.4;
+        c.lineCap = 'round';
+        c.lineJoin = 'round';
+
+        // Kaki
+        c.beginPath();
+        c.moveTo(0, -16 + bobY);
+        c.lineTo(-5 + legSwing, isJump ? -4 : 0);
+        c.moveTo(0, -16 + bobY);
+        c.lineTo(5 - legSwing, isJump ? -2 : 0);
+        c.stroke();
+
+        // Badan
+        c.beginPath();
+        c.moveTo(0, -34 + bobY);
+        c.lineTo(0, -16 + bobY);
+        c.stroke();
+
+        // Tangan
+        c.beginPath();
+        c.moveTo(0, -30 + bobY);
+        c.lineTo(-9 + armSwing, isJump ? -38 + bobY : -20 + bobY);
+        c.moveTo(0, -30 + bobY);
+        c.lineTo(9 - armSwing, isJump ? -38 + bobY : -20 + bobY);
+        c.stroke();
+
+        // Kepala
+        const headY = -43 + bobY;
+        c.fillStyle = '#0f172a';
+        c.beginPath();
+        c.arc(0, headY, 9.5, 0, Math.PI * 2);
+        c.fill();
+        c.stroke();
+
+        c.shadowBlur = 0;
+
+        // 5 Ekspresi Wajah
+        const dir = p.facing || 1;
+        c.fillStyle = '#ffffff';
+        if (p.face === 'cool') {
+          c.fillStyle = '#38bdf8';
+          c.fillRect(-6 + dir * 1.5, headY - 3, 12, 3.8);
+        } else if (p.face === 'determined') {
+          c.beginPath();
+          c.arc(-3 + dir * 2, headY - 1, 1.6, 0, Math.PI * 2);
+          c.arc(3 + dir * 2, headY - 1, 1.6, 0, Math.PI * 2);
+          c.fill();
+          c.strokeStyle = '#ffffff';
+          c.lineWidth = 1.6;
+          c.beginPath();
+          c.moveTo(-5.5 + dir * 2, headY - 4.5);
+          c.lineTo(-1 + dir * 2, headY - 2.5);
+          c.moveTo(5.5 + dir * 2, headY - 4.5);
+          c.lineTo(1 + dir * 2, headY - 2.5);
+          c.stroke();
+        } else if (p.face === 'smile') {
+          c.beginPath();
+          c.arc(-3 + dir * 2, headY - 1.5, 1.5, 0, Math.PI * 2);
+          c.arc(3 + dir * 2, headY - 1.5, 1.5, 0, Math.PI * 2);
+          c.fill();
+          c.strokeStyle = '#ffffff';
+          c.lineWidth = 1.4;
+          c.beginPath();
+          c.arc(dir * 2, headY + 1, 3.2, 0.15 * Math.PI, 0.85 * Math.PI);
+          c.stroke();
+        } else if (p.face === 'surprised') {
+          c.beginPath();
+          c.arc(-3 + dir * 2, headY - 2, 1.7, 0, Math.PI * 2);
+          c.arc(3 + dir * 2, headY - 2, 1.7, 0, Math.PI * 2);
+          c.fill();
+          c.strokeStyle = '#ffffff';
+          c.lineWidth = 1.4;
+          c.beginPath();
+          c.arc(dir * 2, headY + 3, 2.2, 0, Math.PI * 2);
+          c.stroke();
+        } else {
+          // Fokus
+          c.beginPath();
+          c.arc(-3 + dir * 2, headY - 1.5, 1.7, 0, Math.PI * 2);
+          c.arc(3 + dir * 2, headY - 1.5, 1.7, 0, Math.PI * 2);
+          c.fill();
+        }
+
+        // 7 Aksesoris Kepala
+        if (p.hat === 'crown') {
+          c.fillStyle = '#fbbf24';
+          c.beginPath();
+          c.moveTo(-7, headY - 8);
+          c.lineTo(-8, headY - 16);
+          c.lineTo(-3, headY - 12);
+          c.lineTo(0, headY - 18);
+          c.lineTo(3, headY - 12);
+          c.lineTo(8, headY - 16);
+          c.lineTo(7, headY - 8);
+          c.closePath();
+          c.fill();
+        } else if (p.hat === 'ninja') {
+          c.fillStyle = '#ef4444';
+          c.fillRect(-9.5, headY - 6, 19, 3.5);
+          c.beginPath();
+          c.moveTo(-9.5, headY - 4);
+          c.lineTo(-16, headY - 1);
+          c.lineTo(-14, headY + 3);
+          c.lineTo(-9.5, headY - 3);
+          c.fill();
+        } else if (p.hat === 'wizard') {
+          c.fillStyle = '#8b5cf6';
+          c.beginPath();
+          c.moveTo(-12, headY - 7);
+          c.lineTo(12, headY - 7);
+          c.lineTo(0, headY - 24);
+          c.closePath();
+          c.fill();
+        } else if (p.hat === 'headphones') {
+          c.strokeStyle = '#38bdf8';
+          c.lineWidth = 2.5;
+          c.beginPath();
+          c.arc(0, headY, 11, Math.PI, 0);
+          c.stroke();
+          c.fillStyle = '#38bdf8';
+          c.fillRect(-12.5, headY - 4, 3.5, 8);
+          c.fillRect(9, headY - 4, 3.5, 8);
+        } else if (p.hat === 'halo') {
+          c.strokeStyle = '#fde047';
+          c.lineWidth = 2.2;
+          c.beginPath();
+          c.ellipse(0, headY - 14, 8, 2.6, 0, 0, Math.PI * 2);
+          c.stroke();
+        } else if (p.hat === 'horns') {
+          c.fillStyle = '#f43f5e';
+          c.beginPath();
+          c.moveTo(-6, headY - 7);
+          c.lineTo(-11, headY - 17);
+          c.lineTo(-2, headY - 9);
+          c.moveTo(6, headY - 7);
+          c.lineTo(11, headY - 17);
+          c.lineTo(2, headY - 9);
+          c.fill();
+        }
+
+        c.restore();
+      }
+
+      function getTargetAnchor(targetId) {
+        const d = level.doors.find(item => item.id === targetId);
+        if (d) return { x: d.x + d.w / 2, y: d.y + d.h / 2 };
+        const l = level.lasers.find(item => item.id === targetId);
+        if (l) return { x: l.x + l.w / 2, y: l.y + l.h / 2 };
+        const b = level.bridges?.find(item => item.id === targetId);
+        if (b) return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+        const p = level.platforms.find(item => item.id === targetId);
+        if (p) return { x: p.x + p.w / 2, y: p.y + p.h / 2 };
+        return null;
+      }
+
+      function drawEnergyWires(ctx, nowSec) {
+        for (const sw of level.switches) {
+          const sx = sw.x + sw.w / 2;
+          const sy = sw.y + sw.h / 2;
+          const targetIds = [
+            ...(sw.targets || []),
+            ...(sw.toggleDoors || []),
+            ...(sw.forceOpenDoors || []),
+            ...(sw.offLasers || []),
+            ...(sw.toggleLasers || []),
+            ...(sw.moveTargets || [])
+          ];
+          const isLit = !!(sw.active || sw.lockedPermanent);
+          const wireColor = isLit ? '#34d399' : (sw.color || '#38bdf8');
+
+          for (const tid of targetIds) {
+            const dst = getTargetAnchor(tid);
+            if (!dst) continue;
+
+            const midX = (sx + dst.x) / 2;
+            const railY = Math.max(sy, dst.y) + 22;
+
+            ctx.save();
+            ctx.strokeStyle = isLit ? wireColor : wireColor + '48';
+            ctx.lineWidth = isLit ? 2.6 : 1.6;
+            if (!isLit) ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx, railY);
+            ctx.lineTo(midX, railY);
+            ctx.lineTo(dst.x, railY);
+            ctx.lineTo(dst.x, dst.y);
+            ctx.stroke();
+
+            // Titik percikan energi berjalan di atas kabel saat aktif
+            if (isLit) {
+              const t = (nowSec * 1.4) % 1;
+              const px = sx + (dst.x - sx) * t;
+              ctx.fillStyle = '#ffffff';
+              ctx.beginPath();
+              ctx.arc(px, railY, 3, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+        }
+      }
+
+      function renderGameCanvas() {
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const nowSec = performance.now() / 1000;
+        ctx.clearRect(0, 0, 1000, 560);
+
+        // Langit Menara Gema
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, 560);
+        bgGrad.addColorStop(0, '#060913');
+        bgGrad.addColorStop(0.6, '#0f172a');
+        bgGrad.addColorStop(1, '#1e1b4b');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 1000, 560);
+
+        // Pilar arsitektur paralaks
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.32)';
+        for (let i = 0; i < 16; i++) {
+          const px = ((i * 260 - cameraX * 0.32) % 1400 + 1400) % 1400 - 150;
+          ctx.fillRect(px, 30, 48, 530);
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.07)';
+          ctx.fillRect(px + 20, 70, 8, 400);
+          ctx.fillStyle = 'rgba(30, 41, 59, 0.32)';
+        }
+
+        if (!level) return;
+
+        ctx.save();
+        ctx.translate(-Math.round(cameraX), 0);
+
+        // 1. Prasasti Batu Clue di Dinding Latar
+        if (level.tablets) {
+          for (const tb of level.tablets) {
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+            ctx.fillRect(tb.x, tb.y, tb.w, tb.h);
+            ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(tb.x, tb.y, tb.w, tb.h);
+
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(tb.title, tb.x + tb.w / 2, tb.y + 18);
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 12px Inter, sans-serif';
+            tb.lines.forEach((ln, li) => {
+              ctx.fillText(ln, tb.x + tb.w / 2, tb.y + 38 + li * 18);
+            });
+          }
+        }
+
+        // 2. Kabel Energi Bercahaya (Visual Puzzle Circuit)
+        drawEnergyWires(ctx, nowSec);
+
+        // 3. Platform, Lantai & Lift Bergerak
+        for (const pl of level.platforms) {
+          const grad = ctx.createLinearGradient(pl.x, pl.y, pl.x, pl.y + pl.h);
+          grad.addColorStop(0, pl.kind === 'lift' ? '#0e7490' : (pl.kind === 'ground' ? '#1e293b' : '#334155'));
+          grad.addColorStop(1, '#0f172a');
+          ctx.fillStyle = grad;
+          ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
+
+          ctx.fillStyle = pl.kind === 'lift' ? '#22d3ee' : (pl.kind === 'ground' ? '#38bdf8' : '#818cf8');
+          ctx.fillRect(pl.x, pl.y, pl.w, 3);
+        }
+
+        // 4. Jembatan Cahaya (Timed / Lever Bridges)
+        if (level.bridges) {
+          for (const br of level.bridges) {
+            if (br.open) {
+              ctx.save();
+              ctx.shadowColor = br.color || '#22d3ee';
+              ctx.shadowBlur = 14;
+              ctx.fillStyle = (br.color || '#22d3ee') + '66';
+              ctx.fillRect(br.x, br.y, br.w, br.h);
+              ctx.strokeStyle = br.color || '#22d3ee';
+              ctx.lineWidth = 2;
+              ctx.strokeRect(br.x, br.y, br.w, br.h);
+              ctx.restore();
+            } else {
+              ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+              ctx.setLineDash([6, 6]);
+              ctx.strokeRect(br.x, br.y, br.w, br.h);
+              ctx.setLineDash([]);
+            }
+          }
+        }
+
+        // 5. Checkpoint Crystals
+        for (const cp of level.checkpoints) {
+          ctx.strokeStyle = cp.active ? '#34d399' : '#64748b';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(cp.x, cp.y);
+          ctx.lineTo(cp.x, cp.y - 44);
+          ctx.stroke();
+
+          ctx.fillStyle = cp.active ? '#34d399' : '#475569';
+          ctx.beginPath();
+          ctx.moveTo(cp.x, cp.y - 60);
+          ctx.lineTo(cp.x + 8, cp.y - 48);
+          ctx.lineTo(cp.x, cp.y - 36);
+          ctx.lineTo(cp.x - 8, cp.y - 48);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // 6. Portal Akhir
+        const port = level.portal;
+        if (port) {
+          ctx.save();
+          ctx.shadowColor = '#c084fc';
+          ctx.shadowBlur = 24;
+          ctx.fillStyle = 'rgba(168, 85, 247, 0.3)';
+          ctx.fillRect(port.x, port.y, port.w, port.h);
+          ctx.strokeStyle = '#e879f9';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(port.x, port.y, port.w, port.h);
+
+          ctx.beginPath();
+          ctx.ellipse(port.x + port.w / 2, port.y + port.h / 2, 16 + Math.sin(nowSec * 5) * 4, 30, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+
+          ctx.fillStyle = '#f5d0fe';
+          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('PORTAL', port.x + port.w / 2, port.y - 8);
+        }
+
+        // 7. Sakelar, Tuas Terbalik, Rune Sequence, Pattern Lock & Pelat Waktu
+        for (const sw of level.switches) {
+          const isErr = sw.errorFlash > 0;
+          const col = isErr ? '#f43f5e' : (sw.active || sw.lockedPermanent ? '#34d399' : (sw.color || '#38bdf8'));
+
+          if (sw.kind === 'lever' || sw.kind === 'toggle' || sw.kind === 'seq' || sw.kind === 'pattern') {
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(sw.x + 4, sw.y + sw.h - 8, sw.w - 8, 8);
+
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(sw.x + sw.w / 2, sw.y + sw.h - 6);
+            ctx.lineTo(sw.x + sw.w / 2 + (sw.active ? 12 : -12), sw.y + 4);
+            ctx.stroke();
+
+            // Permata status di ujung tuas
+            ctx.fillStyle = col;
+            ctx.beginPath();
+            ctx.arc(sw.x + sw.w / 2 + (sw.active ? 12 : -12), sw.y + 4, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = isErr ? '#fda4af' : '#f8fafc';
+            ctx.font = 'bold 10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            const tag = sw.label || (sw.kind === 'toggle' ? 'BALIK' : (sw.active ? 'AKTIF' : 'TUAS'));
+            ctx.fillText(tag, sw.x + sw.w / 2, sw.y - 7);
+          } else {
+            const hDraw = sw.active ? 7 : 14;
+            const yDraw = sw.y + (16 - hDraw);
+            ctx.fillStyle = col;
+            ctx.fillRect(sw.x, yDraw, sw.w, hDraw);
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            let lbl = 'PELAT';
+            if (sw.kind === 'sync') lbl = 'SYNC';
+            else if (sw.kind === 'timed') lbl = sw.timer > 0 ? `${Math.ceil(sw.timer)}d` : `${sw.duration}d`;
+            ctx.fillText(lbl, sw.x + sw.w / 2, sw.y - 6);
+
+            // Cincin hitung mundur untuk pelat berwaktu
+            if (sw.kind === 'timed' && sw.timer > 0) {
+              const maxDur = (sw.duration || 8) * (isOnline ? 1.0 : 1.5);
+              const ratio = Math.max(0, Math.min(1, sw.timer / maxDur));
+              ctx.strokeStyle = '#fbbf24';
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(sw.x + sw.w / 2, sw.y - 26, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // 8. Pintu / Gerbang Energi
+        for (const d of level.doors) {
+          if (!d.open) {
+            ctx.save();
+            ctx.shadowColor = d.color || '#38bdf8';
+            ctx.shadowBlur = 14;
+            ctx.fillStyle = (d.color || '#38bdf8') + '55';
+            ctx.fillRect(d.x, d.y, d.w, d.h);
+            ctx.strokeStyle = d.color || '#38bdf8';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(d.x, d.y, d.w, d.h);
+            ctx.restore();
+          } else {
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.28)';
+            ctx.fillRect(d.x, d.y, d.w, 12);
+          }
+        }
+
+        // 9. Laser Penghalang
+        for (const lz of level.lasers) {
+          if (lz.active) {
+            ctx.save();
+            ctx.shadowColor = '#f43f5e';
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.85)';
+            ctx.fillRect(lz.x, lz.y, lz.w, lz.h);
+            ctx.fillStyle = '#ffe4e6';
+            ctx.fillRect(lz.x + 5, lz.y, lz.w - 10, lz.h);
+            ctx.restore();
+          }
+        }
+
+        // 10. Kotak Batu Fisika
+        for (const c of level.crates) {
+          ctx.fillStyle = '#b45309';
+          ctx.fillRect(c.x, c.y, c.w, c.h);
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(c.x + 1, c.y + 1, c.w - 2, c.h - 2);
+          ctx.beginPath();
+          ctx.moveTo(c.x + 6, c.y + 6);
+          ctx.lineTo(c.x + c.w - 6, c.y + c.h - 6);
+          ctx.moveTo(c.x + c.w - 6, c.y + 6);
+          ctx.lineTo(c.x + 6, c.y + c.h - 6);
+          ctx.stroke();
+        }
+
+        // 11. Karakter Stickman, Nama & Gelembung Quick Chat Emote
+        players.forEach((p, idx) => {
+          const isActiveLocal = !isOnline ? (idx === activeSoloIdx) : (p.id === myPeerId);
+          drawStickman(ctx, p, p.x + p.w / 2, p.y + p.h, 1, isActiveLocal);
+
+          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = isActiveLocal ? '#fde047' : '#f8fafc';
+          ctx.fillText(p.name, p.x + p.w / 2, p.y - 16);
+
+          // Gelembung Quick Chat Emote
+          if (p.emoteTimer > 0 && p.emoteText) {
+            const bw = Math.max(64, ctx.measureText(p.emoteText).width + 18);
+            const bx = p.x + p.w / 2 - bw / 2;
+            const by = p.y - 52;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.roundRect(bx, by, bw, 22, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.fillText(p.emoteText, p.x + p.w / 2, by + 15);
+          }
+        });
+
+        // 12. Partikel
+        for (const pt of particles) {
+          ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+          ctx.fillStyle = pt.color;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+      }
+
+      /* =========================================================================
+         8. MULTIPLAYER PEERJS (2–6 PEMAIN), LATENCY PING & QUICK CHAT
+         ========================================================================= */
+      function generateRoomCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let out = '';
+        for (let i = 0; i < 5; i++) out += chars[Math.floor(Math.random() * chars.length)];
+        return out;
+      }
+
+      function cleanupNetwork() {
+        if (hostConn) {
+          try { hostConn.close(); } catch (e) {}
+          hostConn = null;
+        }
+        clientConns.forEach(c => {
+          try { c.close(); } catch (e) {}
+        });
+        clientConns.clear();
+        if (peer) {
+          try { peer.destroy(); } catch (e) {}
+          peer = null;
+        }
+        if (broadcastChan) {
+          try { broadcastChan.close(); } catch (e) {}
+          broadcastChan = null;
+        }
+      }
+
+      function setupBroadcastFallback(code) {
+        if (!('BroadcastChannel' in window)) return;
+        broadcastChan = new BroadcastChannel('sticksync_master_' + code);
+        broadcastChan.onmessage = (ev) => handleNetworkMessage(ev.data, null);
+      }
+
+      function sendToAllPeers(payload) {
+        if (isHost) {
+          clientConns.forEach(conn => {
+            if (conn && conn.open) conn.send(payload);
+          });
+        } else if (hostConn && hostConn.open) {
+          hostConn.send(payload);
+        }
+        if (broadcastChan) {
+          try { broadcastChan.postMessage(payload); } catch (e) {}
+        }
+      }
+
+      function triggerQuickEmote(codeKey) {
+        const text = QUICK_EMOTES[codeKey];
+        if (!text) return;
+        const me = getMyControlledPlayer();
+        if (!me) return;
+        me.emoteText = text;
+        me.emoteTimer = 2.8;
+        playSfx('checkpoint');
+        if (isOnline) {
+          sendToAllPeers({ type: 'emote', id: me.id, text });
+        }
+      }
+
+      function hostNewRoom() {
+        cleanupNetwork();
+        isOnline = true;
+        isHost = true;
+        roomCode = generateRoomCode();
+        myPeerId = 'host-' + Math.random().toString(36).slice(2, 7);
+
+        players = [
+          createPlayerObj(myPeerId, profile.name, profile.color, profile.hat, profile.face, 70, 430, true)
+        ];
+
+        showScreen('LOBBY');
+        document.getElementById('lobbyRoleBadge').textContent = 'HOST';
+        document.getElementById('lobbyRoomCode').textContent = roomCode;
+        document.getElementById('hostChapterSelectWrap').classList.remove('hidden');
+        document.getElementById('btnLaunchMultiplayer').classList.remove('hidden');
+        document.getElementById('lobbyNetworkStatus').textContent = 'Menghubungkan jaringan P2P...';
+        renderLobbyPlayers();
+
+        setupBroadcastFallback(roomCode);
+
+        try {
+          peer = new Peer('sticksync-gema-v4-' + roomCode);
+          peer.on('open', () => {
+            document.getElementById('lobbyNetworkStatus').textContent = '✅ Room aktif! Bagikan kode 5 huruf ke 1–5 teman.';
+          });
+          peer.on('connection', (conn) => {
+            if (players.length >= 6) {
+              conn.close();
+              return;
+            }
+            conn.on('data', (data) => handleNetworkMessage(data, conn));
+            conn.on('close', () => {
+              if (conn.playerId) {
+                clientConns.delete(conn.playerId);
+                players = players.filter(p => p.id !== conn.playerId);
+                renderLobbyPlayers();
+                broadcastRoster();
+              }
+            });
+          });
+          peer.on('error', () => {
+            document.getElementById('lobbyNetworkStatus').textContent = 'Mode Room Antar-Tab siap digunakan.';
+          });
+        } catch (e) {
+          document.getElementById('lobbyNetworkStatus').textContent = 'Mode Room Antar-Tab siap digunakan.';
+        }
+      }
+
+      function joinExistingRoom(codeInput) {
+        const cleanCode = codeInput.trim().toUpperCase();
+        if (cleanCode.length !== 5) {
+          document.getElementById('joinStatusText').textContent = 'Masukkan tepat 5 karakter Kode Room!';
+          return;
+        }
+
+        cleanupNetwork();
+        isOnline = true;
+        isHost = false;
+        roomCode = cleanCode;
+        myPeerId = 'guest-' + Math.random().toString(36).slice(2, 8);
+
+        document.getElementById('joinStatusText').textContent = 'Menghubungkan ke Room ' + roomCode + '...';
+        setupBroadcastFallback(roomCode);
+
+        const joinPacket = {
+          type: 'join_request',
+          player: {
+            id: myPeerId,
+            name: profile.name,
+            color: profile.color,
+            hat: profile.hat,
+            face: profile.face
+          }
+        };
+
+        try {
+          peer = new Peer();
+          peer.on('open', () => {
+            hostConn = peer.connect('sticksync-gema-v4-' + roomCode, { reliable: true });
+            hostConn.on('open', () => {
+              hostConn.send(joinPacket);
+              document.getElementById('joinModal').classList.add('hidden');
+              showScreen('LOBBY');
+              document.getElementById('lobbyRoleBadge').textContent = 'TAMU';
+              document.getElementById('lobbyRoomCode').textContent = roomCode;
+              document.getElementById('hostChapterSelectWrap').classList.add('hidden');
+              document.getElementById('btnLaunchMultiplayer').classList.add('hidden');
+              document.getElementById('lobbyNetworkStatus').textContent = '✅ Terhubung! Menunggu Host memulai permainan...';
+            });
+            hostConn.on('data', (data) => handleNetworkMessage(data, hostConn));
+            hostConn.on('error', () => {
+              document.getElementById('joinStatusText').textContent = 'Room tidak ditemukan. Periksa kembali kode.';
+            });
+          });
+        } catch (e) {
+          document.getElementById('joinStatusText').textContent = 'Gagal menginisialisasi koneksi.';
+        }
+
+        if (broadcastChan) {
+          broadcastChan.postMessage(joinPacket);
+        }
+      }
+
+      function broadcastRoster() {
+        const roster = players.map(p => ({
+          id: p.id, name: p.name, color: p.color, hat: p.hat, face: p.face
+        }));
+        sendToAllPeers({ type: 'roster_update', roster });
+      }
+
+      function broadcastWorldState(evtType = 'state_sync') {
+        if (!isHost) return;
+        const payload = {
+          type: evtType,
+          chapterIdx: currentChapterIdx,
+          players: players.map(p => ({
+            id: p.id, name: p.name, color: p.color, hat: p.hat, face: p.face,
+            x: p.x, y: p.y, vx: p.vx, vy: p.vy, facing: p.facing
+          })),
+          doors: level ? level.doors.map(d => ({ id: d.id, open: d.open, lockedOpen: !!d.lockedOpen })) : [],
+          bridges: level && level.bridges ? level.bridges.map(b => ({ id: b.id, open: b.open })) : [],
+          switches: level ? level.switches.map(s => ({ id: s.id, active: s.active, timer: s.timer || 0, lockedPermanent: !!s.lockedPermanent })) : [],
+          lasers: level ? level.lasers.map(l => ({ id: l.id, active: l.active })) : [],
+          crates: level ? level.crates.map(c => ({ id: c.id, x: c.x, y: c.y })) : [],
+          lifts: level ? level.platforms.filter(pl => pl.kind === 'lift').map(pl => ({ id: pl.id, x: pl.x, y: pl.y })) : []
+        };
+        sendToAllPeers(payload);
+      }
+
+      function handleNetworkMessage(data, conn) {
+        if (!data || !data.type) return;
+
+        if (data.type === 'ping') {
+          sendToAllPeers({ type: 'pong', ts: data.ts });
+        } else if (data.type === 'pong' && data.ts) {
+          currentPingMs = Math.max(4, Math.min(299, Math.round(performance.now() - data.ts)));
+          document.getElementById('lobbyPingBadge').textContent = `${currentPingMs} ms`;
+          document.getElementById('hudPingText').textContent = `● ${currentPingMs}ms`;
+        } else if (data.type === 'emote') {
+          const target = players.find(p => p.id === data.id);
+          if (target && target.id !== myPeerId) {
+            target.emoteText = data.text;
+            target.emoteTimer = 2.8;
+          }
+          if (isHost) {
+            clientConns.forEach((c, pid) => {
+              if (pid !== data.id && c.open) c.send(data);
+            });
+          }
+        } else if (data.type === 'join_request' && isHost) {
+          const gp = data.player;
+          if (!gp || players.length >= 6) return;
+          if (conn) {
+            conn.playerId = gp.id;
+            clientConns.set(gp.id, conn);
+          }
+          if (!players.some(p => p.id === gp.id)) {
+            players.push(createPlayerObj(gp.id, gp.name, gp.color, gp.hat, gp.face, 120, 430, false));
+          }
+          renderLobbyPlayers();
+          broadcastRoster();
+          if (screenMode === 'PLAYING') {
+            sendToAllPeers({ type: 'start_game', chapterIdx: currentChapterIdx, roster: players });
+          }
+        } else if (data.type === 'roster_update' && !isHost) {
+          players = data.roster.map((r, i) =>
+            createPlayerObj(r.id, r.name, r.color, r.hat, r.face, 70 + i * 35, 430, r.id === myPeerId)
+          );
+          renderLobbyPlayers();
+        } else if (data.type === 'start_game' && !isHost) {
+          if (data.roster) {
+            players = data.roster.map((r, i) =>
+              createPlayerObj(r.id, r.name, r.color, r.hat, r.face, 70 + i * 35, 430, r.id === myPeerId)
+            );
+          }
+          enterGameScreen(data.chapterIdx || 0);
+        } else if (data.type === 'player_move') {
+          const target = players.find(p => p.id === data.id);
+          if (target && target.id !== myPeerId) {
+            target.targetX = data.x;
+            target.targetY = data.y;
+            target.vx = data.vx;
+            target.vy = data.vy;
+            target.facing = data.facing;
+          }
+          if (isHost) {
+            clientConns.forEach((c, pid) => {
+              if (pid !== data.id && c.open) c.send(data);
+            });
+          }
+        } else if ((data.type === 'state_sync' || data.type === 'chapter_change') && !isHost) {
+          if (data.type === 'chapter_change' && data.chapterIdx !== currentChapterIdx) {
+            loadChapter(data.chapterIdx, true);
+          }
+          if (data.players) {
+            data.players.forEach(rp => {
+              let lp = players.find(p => p.id === rp.id);
+              if (!lp) {
+                lp = createPlayerObj(rp.id, rp.name, rp.color, rp.hat, rp.face, rp.x, rp.y, rp.id === myPeerId);
+                players.push(lp);
+              }
+              if (lp.id !== myPeerId) {
+                lp.targetX = rp.x;
+                lp.targetY = rp.y;
+                lp.vx = rp.vx;
+                lp.vy = rp.vy;
+                lp.facing = rp.facing;
+              }
+            });
+          }
+          if (level) {
+            data.doors?.forEach(rd => {
+              const ld = level.doors.find(d => d.id === rd.id);
+              if (ld) {
+                ld.open = rd.open;
+                ld.lockedOpen = rd.lockedOpen;
+              }
+            });
+            data.bridges?.forEach(rb => {
+              const lb = level.bridges?.find(b => b.id === rb.id);
+              if (lb) lb.open = rb.open;
+            });
+            data.switches?.forEach(rs => {
+              const ls = level.switches.find(s => s.id === rs.id);
+              if (ls) {
+                ls.active = rs.active;
+                ls.timer = rs.timer;
+                ls.lockedPermanent = rs.lockedPermanent;
+              }
+            });
+            data.lasers?.forEach(rl => {
+              const ll = level.lasers.find(l => l.id === rl.id);
+              if (ll) ll.active = rl.active;
+            });
+            data.crates?.forEach(rc => {
+              const lc = level.crates.find(c => c.id === rc.id);
+              if (lc) {
+                lc.x = rc.x;
+                lc.y = rc.y;
+              }
+            });
+            data.lifts?.forEach(rl => {
+              const ll = level.platforms.find(p => p.id === rl.id);
+              if (ll) {
+                ll.x = rl.x;
+                ll.y = rl.y;
+              }
+            });
+          }
+        }
+      }
+
+      function renderLobbyPlayers() {
+        const listEl = document.getElementById('lobbyPlayerList');
+        document.getElementById('lobbyPlayerCount').textContent = `${players.length} / 6`;
+        listEl.innerHTML = '';
+        players.forEach((p, i) => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800';
+
+          const leftWrap = document.createElement('div');
+          leftWrap.className = 'flex items-center gap-3';
+
+          const miniCanvas = document.createElement('canvas');
+          miniCanvas.width = 40;
+          miniCanvas.height = 48;
+          miniCanvas.className = 'w-8 h-10 rounded-lg bg-slate-900 border border-slate-800';
+          const mCtx = miniCanvas.getContext('2d');
+          drawStickman(mCtx, { ...p, animTime: 0 }, 20, 44, 0.68, true, 'idle');
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'text-sm font-bold text-white';
+          nameSpan.textContent = p.name;
+
+          leftWrap.appendChild(miniCanvas);
+          leftWrap.appendChild(nameSpan);
+
+          const roleBadge = document.createElement('span');
+          roleBadge.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300';
+          roleBadge.textContent = i === 0 ? 'Host' : `Penjelajah #${i + 1}`;
+
+          row.appendChild(leftWrap);
+          row.appendChild(roleBadge);
+          listEl.appendChild(row);
+        });
+      }
+
+      /* =========================================================================
+         9. NAVIGASI LAYAR, FULLSCREEN IOS/ANDROID & KUSTOMISASI UI
+         ========================================================================= */
+      let toastTimer = null;
+      function showToast(msg) {
+        const box = document.getElementById('toastBox');
+        box.textContent = msg;
+        box.classList.remove('opacity-0');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => box.classList.add('opacity-0'), 2400);
+      }
+
+      function showScreen(mode) {
+        screenMode = mode;
+        document.getElementById('menuScreen').classList.toggle('hidden', mode !== 'MENU');
+        document.getElementById('lobbyScreen').classList.toggle('hidden', mode !== 'LOBBY');
+        document.getElementById('gameScreen').classList.toggle('hidden', mode !== 'PLAYING');
+      }
+
+      function startSoloAdventure(startChapter = 0) {
+        ensureAudio();
+        cleanupNetwork();
+        isOnline = false;
+        isHost = true;
+        activeSoloIdx = 0;
+
+        const partnerColor = profile.color === '#f87171' ? '#38bdf8' : '#f87171';
+        players = [
+          createPlayerObj('solo-p1', profile.name + ' (P1)', profile.color, profile.hat, profile.face, 70, 430, true),
+          createPlayerObj('solo-p2', 'Rekan (P2)', partnerColor, 'ninja', 'determined', 125, 430, true)
+        ];
+
+        enterGameScreen(startChapter);
+      }
+
+      function enterGameScreen(startChapter = 0) {
+        showScreen('PLAYING');
+        document.getElementById('victoryModal').classList.add('hidden');
+        document.getElementById('hintPopover').classList.add('hidden');
+
+        const roomBadge = document.getElementById('hudRoomBadge');
+        if (isOnline) {
+          roomBadge.classList.remove('hidden');
+          document.getElementById('hudRoomCodeText').textContent = roomCode;
+        } else {
+          roomBadge.classList.add('hidden');
+        }
+
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        if (isTouchDevice) {
+          document.getElementById('touchControls').classList.remove('hidden');
+        }
+
+        loadChapter(startChapter, true);
+      }
+
+      function toggleFullscreen() {
+        const root = document.getElementById('appRoot');
+        const docEl = document.documentElement;
+        const isNativeFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+        if (!isNativeFs && !root.classList.contains('pseudo-fullscreen')) {
+          if (docEl.requestFullscreen) {
+            docEl.requestFullscreen().catch(() => root.classList.add('pseudo-fullscreen'));
+          } else if (docEl.webkitRequestFullscreen) {
+            docEl.webkitRequestFullscreen();
+          } else {
+            root.classList.add('pseudo-fullscreen');
+          }
+          showToast('⛶ Mode Layar Penuh Aktif');
+        } else {
+          if (document.exitFullscreen && document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+          } else if (document.webkitExitFullscreen && document.webkitFullscreenElement) {
+            document.webkitExitFullscreen();
+          }
+          root.classList.remove('pseudo-fullscreen');
+          showToast('Keluar dari Layar Penuh');
+        }
+      }
+
+      function syncCustomizationUI() {
+        document.getElementById('playerNameInput').value = profile.name;
+
+        const pal = document.getElementById('colorPalette');
+        pal.innerHTML = '';
+        NEON_COLORS.forEach(c => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.title = c.name;
+          btn.className = `w-7 h-7 rounded-full transition transform hover:scale-110 ${profile.color === c.hex ? 'ring-2 ring-white scale-110' : 'opacity-80'}`;
+          btn.style.backgroundColor = c.hex;
+          btn.onclick = () => {
+            profile.color = c.hex;
+            saveProfileToStorage();
+            syncCustomizationUI();
+          };
+          pal.appendChild(btn);
+        });
+
+        const hatEl = document.getElementById('hatSelector');
+        hatEl.innerHTML = '';
+        HATS.forEach(h => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = h.label;
+          btn.className = `py-1.5 px-1.5 rounded-lg text-[11px] font-semibold border transition ${
+            profile.hat === h.id
+              ? 'bg-sky-500/25 border-sky-400 text-sky-200'
+              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+          }`;
+          btn.onclick = () => {
+            profile.hat = h.id;
+            saveProfileToStorage();
+            syncCustomizationUI();
+          };
+          hatEl.appendChild(btn);
+        });
+
+        const faceEl = document.getElementById('faceSelector');
+        faceEl.innerHTML = '';
+        FACES.forEach(f => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = f.label;
+          btn.className = `py-1.5 px-1 rounded-lg text-[11px] font-semibold border transition ${
+            profile.face === f.id
+              ? 'bg-indigo-500/25 border-indigo-400 text-indigo-200'
+              : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+          }`;
+          btn.onclick = () => {
+            profile.face = f.id;
+            saveProfileToStorage();
+            syncCustomizationUI();
+          };
+          faceEl.appendChild(btn);
+        });
+
+        updateSaveUI();
+      }
+
+      function updateSaveUI() {
+        document.getElementById('saveBadge').textContent = `Terbuka: Bab ${profile.unlockedChapter + 1}`;
+        document.getElementById('btnContinueSave').textContent = `▶️ Bab ${profile.unlockedChapter + 1}`;
+
+        const lobbySel = document.getElementById('lobbyChapterSelect');
+        lobbySel.innerHTML = '';
+        CHAPTERS.forEach((ch, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          opt.textContent = `Bab ${idx + 1}: ${ch.title}`;
+          lobbySel.appendChild(opt);
+        });
+      }
+
+      function openChapterModal() {
+        const grid = document.getElementById('chapterGrid');
+        grid.innerHTML = '';
+        CHAPTERS.forEach((ch, idx) => {
+          const done = profile.completedChapters.includes(idx);
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800/90 border border-slate-800 hover:border-sky-500/50 text-left transition flex flex-col justify-between';
+          card.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-extrabold text-sky-400">BAB ${idx + 1}</span>
+              <span class="text-[11px] font-semibold ${done ? 'text-emerald-400' : 'text-slate-400'}">
+                ${done ? '✅ Selesai' : 'Siap Dimainkan'}
+              </span>
+            </div>
+            <div class="text-sm font-bold text-white">${ch.title}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">${ch.subtitle}</div>
+          `;
+          card.onclick = () => {
+            document.getElementById('chapterModal').classList.add('hidden');
+            startSoloAdventure(idx);
+          };
+          grid.appendChild(card);
+        });
+        document.getElementById('chapterModal').classList.remove('hidden');
+      }
+
+      /* =========================================================================
+         10. EVENT BINDINGS & LOOP UTAMA 60 FPS
+         ========================================================================= */
+      loadSavedProfile();
+      syncCustomizationUI();
+
+      document.querySelectorAll('.prev-anim-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          previewAnimMode = btn.getAttribute('data-anim');
+          document.querySelectorAll('.prev-anim-btn').forEach(b => {
+            const active = b === btn;
+            b.className = active
+              ? 'prev-anim-btn px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-500/30 text-sky-200 border border-sky-400/50'
+              : 'prev-anim-btn px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400';
+          });
+        });
+      });
+
+      document.getElementById('playerNameInput').addEventListener('input', (e) => {
+        profile.name = e.target.value.trim() || 'Penjelajah';
+        saveProfileToStorage();
+      });
+
+      document.getElementById('btnStartSolo').addEventListener('click', () => startSoloAdventure(0));
+      document.getElementById('btnContinueSave').addEventListener('click', () => startSoloAdventure(profile.unlockedChapter));
+      document.getElementById('btnHostRoom').addEventListener('click', () => {
+        ensureAudio();
+        hostNewRoom();
+      });
+
+      document.getElementById('btnOpenJoin').addEventListener('click', () => {
+        ensureAudio();
+        document.getElementById('joinStatusText').textContent = '';
+        document.getElementById('joinModal').classList.remove('hidden');
+      });
+      document.getElementById('btnCancelJoin').addEventListener('click', () => {
+        document.getElementById('joinModal').classList.add('hidden');
+      });
+      document.getElementById('btnConfirmJoin').addEventListener('click', () => {
+        joinExistingRoom(document.getElementById('joinCodeInput').value);
+      });
+
+      document.getElementById('btnCopyRoomCode').addEventListener('click', () => {
+        const temp = document.createElement('textarea');
+        temp.value = roomCode;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        showToast('📋 Kode Room disalin: ' + roomCode);
+      });
+
+      document.getElementById('btnLaunchMultiplayer').addEventListener('click', () => {
+        const chosenChap = parseInt(document.getElementById('lobbyChapterSelect').value, 10) || 0;
+        sendToAllPeers({ type: 'start_game', chapterIdx: chosenChap, roster: players });
+        enterGameScreen(chosenChap);
+      });
+
+      document.getElementById('btnLeaveLobby').addEventListener('click', () => {
+        cleanupNetwork();
+        isOnline = false;
+        showScreen('MENU');
+      });
+
+      document.getElementById('btnSelectChapter').addEventListener('click', openChapterModal);
+      document.getElementById('btnCloseChapterModal').addEventListener('click', () => {
+        document.getElementById('chapterModal').classList.add('hidden');
+      });
+
+      document.getElementById('btnSaveCodeModal').addEventListener('click', () => {
+        document.getElementById('exportSaveInput').value = generatePortableSaveCode();
+        document.getElementById('importSaveInput').value = '';
+        document.getElementById('saveModal').classList.remove('hidden');
+      });
+      document.getElementById('btnCloseSaveModal').addEventListener('click', () => {
+        document.getElementById('saveModal').classList.add('hidden');
+      });
+      document.getElementById('btnCopySaveCode').addEventListener('click', () => {
+        const inp = document.getElementById('exportSaveInput');
+        inp.select();
+        document.execCommand('copy');
+        showToast('💾 Kode Save berhasil disalin!');
+      });
+      document.getElementById('btnApplyImportSave').addEventListener('click', () => {
+        const ok = importPortableSaveCode(document.getElementById('importSaveInput').value);
+        if (ok) {
+          document.getElementById('saveModal').classList.add('hidden');
+          showToast('✅ Kode Save berhasil dimuat!');
+        } else {
+          showToast('❌ Kode Save tidak valid.');
+        }
+      });
+
+      // HUD Controls
+      document.getElementById('btnHudHint').addEventListener('click', () => {
+        document.getElementById('hintPopover').classList.toggle('hidden');
+      });
+      document.getElementById('btnCloseHint').addEventListener('click', () => {
+        document.getElementById('hintPopover').classList.add('hidden');
+      });
+
+      document.getElementById('btnHudSwitchChar').addEventListener('click', () => {
+        if (!isOnline && players.length > 1) {
+          activeSoloIdx = (activeSoloIdx + 1) % players.length;
+          updateHudInfo();
+          showToast(`Mengendalikan: ${players[activeSoloIdx].name}`);
+        }
+      });
+
+      document.getElementById('btnHudToggleTouch').addEventListener('click', () => {
+        document.getElementById('touchControls').classList.toggle('hidden');
+      });
+
+      document.getElementById('btnHudReset').addEventListener('click', () => {
+        loadChapter(currentChapterIdx, false);
+        showToast('↺ Bab diulang dari awal.');
+      });
+
+      document.getElementById('btnHudSound').addEventListener('click', () => {
+        soundMuted = !soundMuted;
+        document.getElementById('btnHudSound').textContent = soundMuted ? '🔇' : '🔊';
+      });
+
+      document.getElementById('btnHudFullscreen').addEventListener('click', toggleFullscreen);
+
+      document.getElementById('btnHudMenu').addEventListener('click', () => {
+        cleanupNetwork();
+        isOnline = false;
+        showScreen('MENU');
+      });
+
+      document.querySelectorAll('.qc-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          triggerQuickEmote(btn.getAttribute('data-emote'));
+        });
+      });
+
+      document.getElementById('chapterIntroOverlay').addEventListener('click', () => {
+        document.getElementById('chapterIntroOverlay').classList.add('hidden');
+      });
+
+      document.getElementById('btnVictoryReplay').addEventListener('click', () => {
+        document.getElementById('victoryModal').classList.add('hidden');
+        loadChapter(0, true);
+      });
+      document.getElementById('btnVictoryMenu').addEventListener('click', () => {
+        document.getElementById('victoryModal').classList.add('hidden');
+        cleanupNetwork();
+        isOnline = false;
+        showScreen('MENU');
+      });
+
+      window.addEventListener('keydown', (e) => {
+        keys[e.code] = true;
+        if (screenMode === 'PLAYING') {
+          if (!document.getElementById('chapterIntroOverlay').classList.contains('hidden')) {
+            document.getElementById('chapterIntroOverlay').classList.add('hidden');
+          }
+          if (e.code === 'Tab' && !isOnline) {
+            e.preventDefault();
+            activeSoloIdx = (activeSoloIdx + 1) % players.length;
+            updateHudInfo();
+          } else if (e.code === 'KeyR') {
+            loadChapter(currentChapterIdx, false);
+          } else if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].includes(e.code)) {
+            triggerQuickEmote(e.code.replace('Digit', ''));
+          }
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        keys[e.code] = false;
+      });
+
+      function bindTouchBtn(btnId, prop) {
+        const el = document.getElementById(btnId);
+        if (!el) return;
+        const setOn = (e) => { e.preventDefault(); ensureAudio(); virtualInput[prop] = true; };
+        const setOff = (e) => { e.preventDefault(); virtualInput[prop] = false; };
+        el.addEventListener('touchstart', setOn, { passive: false });
+        el.addEventListener('touchend', setOff, { passive: false });
+        el.addEventListener('touchcancel', setOff, { passive: false });
+        el.addEventListener('mousedown', setOn);
+        el.addEventListener('mouseup', setOff);
+        el.addEventListener('mouseleave', setOff);
+      }
+
+      bindTouchBtn('touchLeft', 'left');
+      bindTouchBtn('touchRight', 'right');
+      bindTouchBtn('touchJump', 'jump');
+      bindTouchBtn('touchAction', 'action');
+
+      document.getElementById('touchSwitch').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (!isOnline && players.length > 1) {
+          activeSoloIdx = (activeSoloIdx + 1) % players.length;
+          updateHudInfo();
+        }
+      }, { passive: false });
+
+      // Main 60 FPS Animation Loop
+      let lastFrameTime = performance.now();
+      let netSyncAccum = 0;
+      let pingAccum = 0;
+      let previewTime = 0;
+
+      function mainLoop(now) {
+        const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+        lastFrameTime = now;
+
+        if (screenMode === 'MENU') {
+          previewTime += dt * (previewAnimMode === 'run' ? 9 : 3.5);
+          const pCanvas = document.getElementById('previewCanvas');
+          const pCtx = pCanvas.getContext('2d');
+          pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+          drawStickman(pCtx, {
+            color: profile.color,
+            hat: profile.hat,
+            face: profile.face,
+            facing: 1,
+            vx: 0,
+            animTime: previewTime
+          }, 48, 90, 1.32, true, previewAnimMode);
+        } else if (screenMode === 'PLAYING') {
+          stepPhysics(dt);
+          renderGameCanvas();
+
+          if (isOnline) {
+            netSyncAccum += dt;
+            if (netSyncAccum >= 0.05) {
+              netSyncAccum = 0;
+              const me = getMyControlledPlayer();
+              if (me) {
+                sendToAllPeers({
+                  type: 'player_move',
+                  id: me.id,
+                  x: me.x,
+                  y: me.y,
+                  vx: me.vx,
+                  vy: me.vy,
+                  facing: me.facing
+                });
+              }
+              if (isHost) {
+                broadcastWorldState('state_sync');
+              }
+            }
+            pingAccum += dt;
+            if (pingAccum >= 2.0) {
+              pingAccum = 0;
+              sendToAllPeers({ type: 'ping', ts: performance.now() });
+            }
+          }
+        }
+
+        requestAnimationFrame(mainLoop);
+      }
+
+      window.addEventListener('load', () => {
+        requestAnimationFrame(mainLoop);
+      });
+    })();
+  </script>
+</body>
+</html>
